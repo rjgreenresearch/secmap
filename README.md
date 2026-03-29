@@ -64,6 +64,12 @@ Requires Python 3.10+.
 ```bash
 # Trace Smithfield Foods (WH Group subsidiary, largest Chinese-linked pork producer)
 secmap run --cik 91388 --forms 10-K 20-F SC\ 13D SC\ 13G --depth 10 --limit 20 --out smithfield.csv
+
+# Generate risk-rated ownership report
+python report_generator.py smithfield.csv
+
+# Generate ownership chain diagram
+python network_visualizer.py smithfield.csv --cik 91388 --root "SMITHFIELD FOODS INC" --fmt pdf
 ```
 
 ### Production Batch
@@ -148,8 +154,8 @@ Plus metadata fields for deduplication, timestamps, and notes.
 │  │   CIK    │                                 │    CSV     │   │
 │  │Discovery │◀─── recursive ──────────────────│   Writer   │   │
 │  │  (BFS)   │     up to depth 10              │  + Meta    │   │
-│  └──────────┘                                 └────────────┘   │
-│                                                                 │
+│  └──────────┘                                 └─────┬──────┘   │
+│                                                      │         │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │              Classification & Risk Scoring               │  │
 │  │  ┌────────────┐  ┌──────────────┐  ┌─────────────────┐  │  │
@@ -157,6 +163,15 @@ Plus metadata fields for deduplication, timestamps, and notes.
 │  │  │ Inference  │  │ Affiliation  │  │    Taxonomy     │  │  │
 │  │  │ 5 tiers    │  │ PRC/RU/IR/KP │  │ 50+ roles      │  │  │
 │  │  └────────────┘  └──────────────┘  └─────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                      │         │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │               Visualization & Reporting                  │  │
+│  │  ┌─────────────────┐         ┌───────────────────────┐  │  │
+│  │  │    Network       │         │   Report Generator    │  │  │
+│  │  │   Visualizer     │         │  Risk-rated Markdown  │  │  │
+│  │  │ Graphviz + PyVis │         │  + supply chain alert │  │  │
+│  │  └─────────────────┘         └───────────────────────┘  │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -190,9 +205,72 @@ Plus metadata fields for deduplication, timestamps, and notes.
 | `metadata.py` | 176 | Run metadata and chain analysis summary |
 | `config.py` | 130 | Three-layer config: defaults → environment → CLI |
 | `sec_universe.py` | 174 | SEC filing universe (10,447 companies, 28,183 mutual funds) |
+| **Visualization & Reporting** | | |
+| `report_generator.py` | 400+ | Risk-rated ownership chain summary reports (Markdown) |
+| `network_visualizer.py` | 350+ | Hierarchical ownership chain diagrams (Graphviz/PyVis) |
+| **State SOS Integration** | | |
 | `state_sos/state_registry.py` | 317 | 51-jurisdiction access catalog |
 | `state_sos/gap_analyzer.py` | 286 | Federal/state visibility gap analysis |
 | `state_sos/texas_sos.py` | 171 | Texas SOS PDF parser |
+
+### Visualization & Reporting
+
+SECMap includes two output tools that consume the pipeline's CSV artifacts:
+
+| Tool | Purpose |
+|------|---------|
+| `report_generator.py` | Generates per-CIK ownership chain summary reports in Markdown. Each report includes an overall risk rating (CRITICAL / HIGH / ELEVATED / MODERATE / LOW), supply chain vulnerability assessment with SIC-to-critical-sector mapping, AFIDA depth comparison, complete beneficial owner and institutional relationship listings, state-actor affiliation findings, key personnel organised by role, obscuring-role flags, jurisdiction risk distribution, and temporal filing coverage. |
+| `network_visualizer.py` | Produces hierarchical ownership chain diagrams from per-CIK CSVs. Supports Graphviz (PDF/SVG/PNG) output with pagination, typed node colouring (company/person/country), and legend. Also generates PyVis interactive HTML graphs at configurable depth levels for browser-based exploration. |
+
+#### Report Generator
+
+```bash
+# Single entity report
+python report_generator.py output/run_XXXX/per_cik/cik_91388.csv
+
+# Batch — all CIKs in a run
+python report_generator.py output/run_XXXX/per_cik/
+
+# Custom output directory
+python report_generator.py output/run_XXXX/per_cik/ --out reports/
+```
+
+Example output (Smithfield Foods, CIK 91388):
+
+```
+## Overall Risk Rating: CRITICAL (score: 75/100)
+
+- Adversarial-nation jurisdictions detected: China, Russia
+- 2 state-actor affiliated entity(ies)
+- Conduit jurisdictions: Hong Kong
+- Critical sector(s): Agriculture & Food
+
+## Supply Chain Vulnerability Assessment
+⚠ SUPPLY CHAIN ALERT: This entity operates in Agriculture & Food
+and has ownership chain exposure to China, Russia.
+```
+
+#### Network Visualizer
+
+```bash
+# Graphviz PDF with layered depth
+python network_visualizer.py output/run_XXXX/per_cik/cik_1123661.csv \
+    --cik 1123661 --root "Syngenta AG" --depth1 1 --depth2 2 --fmt pdf
+
+# Interactive HTML for browser exploration
+python network_visualizer.py output/run_XXXX/per_cik/cik_91388.csv \
+    --cik 91388 --root "SMITHFIELD FOODS INC" --fmt html
+```
+
+Produces colour-coded ownership chain diagrams showing:
+- **Blue nodes:** Companies and institutions
+- **Purple nodes:** Named individuals
+- **Green nodes:** Countries and jurisdictions
+- **Red edges:** Wholly-owned subsidiary chains
+- **Blue edges:** Beneficial ownership claims
+- **Purple edges:** Officer and director relationships
+
+Both tools are documented in detail in [`docs/`](docs/).
 
 ---
 
