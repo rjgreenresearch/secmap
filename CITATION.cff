@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+title: "SECMap: Deterministic Ownership & Governance Mapping System"
+message: "If you use SECMap in your research, policy analysis, or publications, please cite it as below."
+type: software
+authors:
+  - family-names: Green
+    given-names: Robert J.
+    affiliation: "RJGreenReseach.org"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+version: "1.0.0"
+date-released: "2026-03-26"
+repository-code: "https://github.com/rjgreenresearch/secmap"
+license: "Apache-2.0"
+keywords:
+  - SEC filings
+  - beneficial ownership
+  - Schedule 13D
+  - Schedule 13G
+  - governance networks
+  - reproducible research
+  - deterministic pipelines
+  - regulatory analytics
+abstract: >
+  SECMap is a deterministic, reproducible, multi-stage system for extracting,
+  normalizing, and representing ownership and governance relationships from SEC
+  regulatory filings. It includes recursive CIK discovery, SC-13 beneficial
+  ownership normalization, typed relationship construction, deterministic
+  deduplication, and artifact-grade CSV output suitable for econometrics,
+  policy analysis, intelligence workflows, and academic research.

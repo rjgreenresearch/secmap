@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secmap"
+version = "0.1.0"
+description = "SECMap — Ownership & Governance Mapping Tool"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "APACHE2.0" }
+authors = [
+  { name = "Robert J. Green" }
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: APACHE 2.0 License",
+  "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "pytest-html>=4.0.0",
+  "pytest-md>=0.2.0",
+]
+
+
+[project.scripts]
+secmap = "secmap.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["secmap"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test*.py"
