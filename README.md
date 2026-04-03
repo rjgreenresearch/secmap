@@ -4,7 +4,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-green.svg)](https://www.python.org/downloads/)
-[![Tests: 253](https://img.shields.io/badge/tests-253-brightgreen.svg)]()
+[![Tests: 257](https://img.shields.io/badge/tests-257-brightgreen.svg)]()
 [![Deterministic](https://img.shields.io/badge/output-deterministic-orange.svg)]()
 
 SECMap traces beneficial ownership chains through SEC regulatory filings to their ultimate terminus — including chains that route through adversarial nations, conduit jurisdictions, and opacity havens. Given the same filings, it produces identical output, every time.

@@ -13,6 +13,10 @@ from secmap.jurisdiction_inference import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Core inference
+# ---------------------------------------------------------------------------
+
 def test_issuer_country_override():
     assert infer_jurisdiction("TestCorp", issuer_country="China") == "China"
 
@@ -39,81 +43,55 @@ def test_exception_handling():
     assert infer_jurisdiction(None) is None
 
 
-# --- Adversarial nations ---
+# ---------------------------------------------------------------------------
+# Country inference — parametrized across all tiers
+# ---------------------------------------------------------------------------
 
-def test_china_city_inference():
-    assert infer_jurisdiction("Shanghai Holdings Group") == "China"
-
-
-def test_russia_inference():
-    assert infer_jurisdiction("Moscow Industrial Trading") == "Russia"
-
-
-def test_iran_inference():
-    assert infer_jurisdiction("Tehran Petrochemical Corp") == "Iran"
-
-
-def test_north_korea_inference():
-    assert infer_jurisdiction("Pyongyang Trading Company") == "North Korea"
-
-
-# --- Conduit jurisdictions ---
-
-def test_hong_kong_inference():
-    assert infer_jurisdiction("Hong Kong Ventures Ltd") == "Hong Kong"
-
-
-def test_uae_inference():
-    assert infer_jurisdiction("Dubai International Holdings") == "United Arab Emirates"
+@pytest.mark.parametrize("entity_name,expected_country", [
+    # Adversarial
+    ("Shanghai Holdings Group", "China"),
+    ("Moscow Industrial Trading", "Russia"),
+    ("Tehran Petrochemical Corp", "Iran"),
+    ("Pyongyang Trading Company", "North Korea"),
+    # Conduit
+    ("Hong Kong Ventures Ltd", "Hong Kong"),
+    ("Dubai International Holdings", "United Arab Emirates"),
+    ("Limassol Shipping Corp", "Cyprus"),
+    # Opacity
+    ("Grand Cayman SPV Holdings", "Cayman Islands"),
+    ("BVI Investment Holdings", "British Virgin Islands"),
+    ("Male Trading Corporation", "Maldives"),
+    ("Seychelles Offshore Holdings", "Seychelles"),
+])
+def test_country_inference(entity_name, expected_country):
+    assert infer_jurisdiction(entity_name) == expected_country
 
 
-def test_cyprus_inference():
-    assert infer_jurisdiction("Limassol Shipping Corp") == "Cyprus"
+# ---------------------------------------------------------------------------
+# Risk tier API — parametrized
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("country,expected_tier", [
+    ("China", RISK_ADVERSARIAL),
+    ("Russia", RISK_ADVERSARIAL),
+    ("Iran", RISK_ADVERSARIAL),
+    ("North Korea", RISK_ADVERSARIAL),
+    ("Hong Kong", RISK_CONDUIT),
+    ("Cyprus", RISK_CONDUIT),
+    ("Cayman Islands", RISK_OPACITY),
+    ("British Virgin Islands", RISK_OPACITY),
+    ("United States", RISK_STANDARD),
+    ("United Kingdom", RISK_STANDARD),
+])
+def test_risk_tier(country, expected_tier):
+    assert get_risk_tier(country) == expected_tier
 
 
-# --- Opacity jurisdictions ---
+# ---------------------------------------------------------------------------
+# infer_jurisdiction_with_risk
+# ---------------------------------------------------------------------------
 
-def test_cayman_inference():
-    assert infer_jurisdiction("Grand Cayman SPV Holdings") == "Cayman Islands"
-
-
-def test_bvi_inference():
-    assert infer_jurisdiction("BVI Investment Holdings") == "British Virgin Islands"
-
-
-def test_maldives_inference():
-    assert infer_jurisdiction("Male Trading Corporation") == "Maldives"
-
-
-def test_seychelles_inference():
-    assert infer_jurisdiction("Seychelles Offshore Holdings") == "Seychelles"
-
-
-# --- Risk tier API ---
-
-def test_risk_tier_adversarial():
-    assert get_risk_tier("China") == RISK_ADVERSARIAL
-    assert get_risk_tier("Russia") == RISK_ADVERSARIAL
-    assert get_risk_tier("Iran") == RISK_ADVERSARIAL
-    assert get_risk_tier("North Korea") == RISK_ADVERSARIAL
-
-
-def test_risk_tier_conduit():
-    assert get_risk_tier("Hong Kong") == RISK_CONDUIT
-    assert get_risk_tier("Cyprus") == RISK_CONDUIT
-
-
-def test_risk_tier_opacity():
-    assert get_risk_tier("Cayman Islands") == RISK_OPACITY
-    assert get_risk_tier("British Virgin Islands") == RISK_OPACITY
-
-
-def test_risk_tier_standard():
-    assert get_risk_tier("United States") == RISK_STANDARD
-    assert get_risk_tier("United Kingdom") == RISK_STANDARD
-
-
-def test_infer_with_risk_returns_tier():
+def test_infer_with_risk_adversarial():
     result = infer_jurisdiction_with_risk("Beijing Capital Holdings")
     assert result is not None
     assert result.country == "China"
@@ -131,24 +109,20 @@ def test_infer_with_risk_none():
     assert result is None
 
 
+# ---------------------------------------------------------------------------
+# List API
+# ---------------------------------------------------------------------------
+
 def test_adversarial_countries_list():
     countries = get_all_adversarial_countries()
-    assert "China" in countries
-    assert "Russia" in countries
-    assert "Iran" in countries
-    assert "North Korea" in countries
+    assert {"China", "Russia", "Iran", "North Korea"} <= set(countries)
 
 
 def test_opacity_jurisdictions_list():
     jurisdictions = get_all_opacity_jurisdictions()
-    assert "Cayman Islands" in jurisdictions
-    assert "British Virgin Islands" in jurisdictions
-    assert "Seychelles" in jurisdictions
-    assert "Maldives" in jurisdictions
+    assert {"Cayman Islands", "British Virgin Islands", "Seychelles"} <= set(jurisdictions)
 
 
 def test_conduit_jurisdictions_list():
     jurisdictions = get_all_conduit_jurisdictions()
-    assert "Hong Kong" in jurisdictions
-    assert "Cyprus" in jurisdictions
-    assert "United Arab Emirates" in jurisdictions
+    assert {"Hong Kong", "Cyprus", "United Arab Emirates"} <= set(jurisdictions)
