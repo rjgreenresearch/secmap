@@ -35,6 +35,10 @@ class SECMapConfig:
     log_level: str = "INFO"
     max_depth: int = 10          # supports up to 10-layer BOI lineage chains
     max_filings_per_cik: int = 20
+    # XBRL descension options
+    xbrl_data_dir: str = ""      # path to AQFSN data (e.g. "data/SEC/aqfsn")
+    enable_descension: bool = False
+    descension_depth: int = 3
 
 
 DEFAULT_CONFIG = SECMapConfig()
@@ -67,6 +71,13 @@ def _validate_log_level(level: str):
         raise ValueError(f"Invalid log level: {level}")
 
 
+def _validate_descension_depth(value: int):
+    if value < 0:
+        raise ValueError(f"descension_depth must be non-negative, got {value}")
+    if value > 10:
+        raise ValueError(f"descension_depth cannot exceed 10, got {value}")
+
+
 def validate_config(cfg: SECMapConfig) -> SECMapConfig:
     _validate_positive_int("max_retries", cfg.max_retries)
     _validate_positive_float("backoff_seconds", cfg.backoff_seconds)
@@ -74,6 +85,10 @@ def validate_config(cfg: SECMapConfig) -> SECMapConfig:
     _validate_max_depth(cfg.max_depth)
     _validate_positive_int("max_filings_per_cik", cfg.max_filings_per_cik)
     _validate_log_level(cfg.log_level)
+    _validate_descension_depth(cfg.descension_depth)
+    # Auto-enable descension if xbrl_data_dir is set
+    if cfg.xbrl_data_dir and not cfg.enable_descension:
+        cfg = replace(cfg, enable_descension=True)
     return cfg
 
 

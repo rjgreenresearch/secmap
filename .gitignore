@@ -11,6 +11,12 @@
 # Users populate their own cache by running SECMap with network access.
 cache/
 
+# --- SEC Financial Statement and Notes Data Sets
+# Cached SEC Notes datasets from 2025 and 2026
+# captured from https://www.sec.gov/data-research/sec-markets-data/financial-statement-notes-data-sets
+# Keep this private; we don't redistribute SEC data.
+data/
+
 # ---- Production & Research Output ----
 # Run output contains your research data — CSVs, reports, logs.
 # Keep this private; results are reproducible from source.

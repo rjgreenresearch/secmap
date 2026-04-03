@@ -346,7 +346,213 @@ def analyze_rows(rows: List[Dict]) -> Dict:
     if summary["sic_code"]:
         summary["critical_sectors"] = classify_sector(summary["sic_code"])
 
+    # Build ownership tree from directed edges
+    summary["ownership_tree"] = _build_ownership_tree(rows, summary)
+
     return summary
+
+
+# ---------------------------------------------------------------------------
+# Ownership tree builder
+# ---------------------------------------------------------------------------
+
+def _build_ownership_tree(rows: List[Dict], summary: Dict) -> Dict:
+    """
+    Build a directed ownership graph from CSV edges and compute the
+    full chain tree with the investigated entity positioned in context.
+    """
+    # Identify the root entity using company_cik matching
+    # The root CIK's company name is the most frequent company_name in the data
+    root_name = ""
+    cik_name_counts = Counter()
+    for r in rows:
+        cn = (r.get("company_name") or "").strip()
+        cc = (r.get("company_cik") or "").strip()
+        if cn and cc:
+            cik_name_counts[(cc, cn)] += 1
+
+    # Pick the company_name associated with the most edges at depth 0
+    depth0_names = Counter()
+    for r in rows:
+        try:
+            d = int(r.get("chain_depth", "0") or "0")
+        except ValueError:
+            d = 0
+        if d == 0:
+            cn = (r.get("company_name") or "").strip()
+            if cn:
+                depth0_names[cn] += 1
+    if depth0_names:
+        root_name = depth0_names.most_common(1)[0][0]
+    elif cik_name_counts:
+        root_name = cik_name_counts.most_common(1)[0][1]
+
+    # Fallback: most common target of person_role edges
+    if not root_name:
+        target_counts = Counter()
+        for r in rows:
+            if r.get("relationship") in ("person_role", "institution_role"):
+                target_counts[r.get("target", "")] += 1
+        if target_counts:
+            root_name = target_counts.most_common(1)[0][0]
+
+    if not root_name:
+        root_name = sorted(summary["company_names"])[0] if summary["company_names"] else ""
+
+    # Build adjacency: who_owns[entity] = list of owners (upward)
+    #                   subsidiaries[entity] = list of children (downward)
+    who_owns: Dict[str, List[Dict]] = defaultdict(list)
+    subsidiaries: Dict[str, List[Dict]] = defaultdict(list)
+
+    # Entity metadata lookup
+    entity_meta: Dict[str, Dict] = {}
+
+    def _record_meta(name, row, role=""):
+        if name and name not in entity_meta:
+            entity_meta[name] = {
+                "jurisdiction": row.get("source_jurisdiction", "") if name == row.get("source", "") else row.get("target_jurisdiction", ""),
+                "risk_tier": row.get("source_risk_tier", "") if name == row.get("source", "") else row.get("target_risk_tier", ""),
+                "state_affiliation": row.get("state_affiliation", ""),
+                "role": role,
+            }
+
+    # Deduplicate beneficial_owner edges by (source, target) pair
+    seen_bo_pairs = set()
+    for r in rows:
+        rel = r.get("relationship", "")
+        src = (r.get("source") or "").strip()
+        tgt = (r.get("target") or "").strip()
+        if not src or not tgt:
+            continue
+
+        if rel == "beneficial_owner":
+            pair = (src, tgt)
+            if pair in seen_bo_pairs:
+                continue
+            seen_bo_pairs.add(pair)
+            who_owns[tgt].append({"name": src, "detail": r.get("detail", ""), "depth": r.get("chain_depth", "0")})
+            _record_meta(src, r, "beneficial_owner")
+            _record_meta(tgt, r)
+
+        elif rel == "consolidated_subsidiary":
+            subsidiaries[src].append({"name": tgt, "detail": r.get("detail", ""), "depth": r.get("chain_depth", "0")})
+            _record_meta(src, r)
+            _record_meta(tgt, r, "subsidiary")
+
+    # Walk upward from root to find ancestor chain (BFS, deduplicated)
+    ancestors = []  # ordered from root upward: [(name, level), ...]
+    visited_up = {root_name}
+    frontier = [root_name]
+    level = 0
+    while frontier and level < 20:
+        level += 1
+        next_frontier = []
+        for entity in frontier:
+            for owner_info in who_owns.get(entity, []):
+                owner = owner_info["name"]
+                if owner not in visited_up:
+                    visited_up.add(owner)
+                    ancestors.append((owner, level, owner_info.get("detail", "")))
+                    next_frontier.append(owner)
+        frontier = next_frontier
+
+    # Walk downward from root to find descendant chain (BFS, deduplicated)
+    descendants = []  # ordered from root downward: [(name, level), ...]
+    visited_down = {root_name}
+    frontier = [root_name]
+    level = 0
+    while frontier and level < 20:
+        level += 1
+        next_frontier = []
+        for entity in frontier:
+            for child_info in subsidiaries.get(entity, []):
+                child = child_info["name"]
+                if child not in visited_down:
+                    visited_down.add(child)
+                    descendants.append((child, level, child_info.get("detail", "")))
+                    next_frontier.append(child)
+        frontier = next_frontier
+
+    # Compute chain length
+    max_ancestor_depth = max((lvl for _, lvl, _ in ancestors), default=0)
+    max_descendant_depth = max((lvl for _, lvl, _ in descendants), default=0)
+    chain_length = max_ancestor_depth + 1 + max_descendant_depth  # ancestors + root + descendants
+
+    # Build ASCII tree
+    tree_lines = []
+
+    # Render ancestors top-down (highest ancestor first)
+    ancestors_by_level = defaultdict(list)
+    for name, lvl, detail in ancestors:
+        ancestors_by_level[lvl].append((name, detail))
+
+    for lvl in range(max_ancestor_depth, 0, -1):
+        indent = "  " * (max_ancestor_depth - lvl)
+        for name, detail in ancestors_by_level.get(lvl, []):
+            meta = entity_meta.get(name, {})
+            jur = meta.get("jurisdiction", "")
+            tier = meta.get("risk_tier", "")
+            sa = meta.get("state_affiliation", "")
+            tags = []
+            if jur:
+                tags.append(jur)
+            if tier and tier != "STANDARD":
+                tags.append(tier)
+            if sa:
+                tags.append(sa)
+            tag_str = f" ({', '.join(tags)})" if tags else ""
+            pct = f" [{detail}]" if detail else ""
+            tree_lines.append(f"{indent}{name}{pct}{tag_str}")
+            if lvl > 1:
+                tree_lines.append(f"{indent}  |")
+
+    # Render root entity (starred)
+    root_indent = "  " * max_ancestor_depth
+    if max_ancestor_depth > 0:
+        tree_lines.append(f"{root_indent}  |")
+    root_meta = entity_meta.get(root_name, {})
+    root_jur = root_meta.get("jurisdiction", "")
+    root_tag = f" ({root_jur})" if root_jur else ""
+    tree_lines.append(f"{root_indent}* {root_name}{root_tag}  <-- INVESTIGATED ENTITY")
+
+    # Render descendants
+    def _render_descendants(parent, indent_level, visited):
+        children = subsidiaries.get(parent, [])
+        for child_info in children:
+            child = child_info["name"]
+            if child in visited:
+                continue
+            visited.add(child)
+            indent = "  " * (max_ancestor_depth + indent_level)
+            meta = entity_meta.get(child, {})
+            jur = meta.get("jurisdiction", "")
+            tier = meta.get("risk_tier", "")
+            sa = meta.get("state_affiliation", "")
+            tags = []
+            if jur:
+                tags.append(jur)
+            if tier and tier != "STANDARD":
+                tags.append(tier)
+            if sa:
+                tags.append(sa)
+            tag_str = f" ({', '.join(tags)})" if tags else ""
+            tree_lines.append(f"{indent}  |-- {child}{tag_str}")
+            _render_descendants(child, indent_level + 1, visited)
+
+    if descendants:
+        desc_visited = {root_name}
+        _render_descendants(root_name, 1, desc_visited)
+
+    return {
+        "root_name": root_name,
+        "ancestors": ancestors,
+        "descendants": descendants,
+        "chain_length": chain_length,
+        "max_ancestor_depth": max_ancestor_depth,
+        "max_descendant_depth": max_descendant_depth,
+        "tree_text": "\n".join(tree_lines),
+        "entity_meta": entity_meta,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -428,38 +634,27 @@ def generate_executive_summary(summary: Dict, meta: Dict, source_file: str, rows
             lines.append(f"- {r}")
         lines.append("")
 
-    # Ownership chain
-    if summary["beneficial_owners"]:
+    # Ownership chain tree (compact version for executive summary)
+    tree = summary.get("ownership_tree", {})
+    if tree.get("tree_text"):
         lines.append("---")
         lines.append("")
         lines.append("## Ownership Chain")
         lines.append("")
-
-        depth_0_bos = [bo for bo in summary["beneficial_owners"] if bo.get("_depth", 0) == 0]
-        depth_1_bos = [bo for bo in summary["beneficial_owners"] if bo.get("_depth", 0) == 1]
-        if not depth_0_bos and not depth_1_bos:
-            depth_0_bos = summary["beneficial_owners"]
-
-        # Show as a compact chain
-        lines.append(f"**{title_name}** is beneficially owned by:")
+        chain_len = tree.get("chain_length", 0)
+        anc = tree.get("max_ancestor_depth", 0)
+        desc = tree.get("max_descendant_depth", 0)
+        lines.append(f"**{chain_len}-tier chain** ({anc} owners above, {desc} subsidiaries below)")
         lines.append("")
-
-        if depth_0_bos:
-            for bo in depth_0_bos:
-                sa = f" **[{bo['state_affiliation']}]**" if bo.get("state_affiliation") else ""
-                jur = f" ({bo['jurisdiction']})" if bo.get("jurisdiction") else ""
-                pct = f" — {bo['detail']}" if bo.get("detail") else ""
-                lines.append(f"- {bo['name']}{jur}{pct}{sa}")
-
-        if depth_1_bos:
-            lines.append("")
-            lines.append("Who are in turn owned by:")
-            lines.append("")
-            for bo in depth_1_bos:
-                sa = f" **[{bo['state_affiliation']}]**" if bo.get("state_affiliation") else ""
-                jur = f" ({bo['jurisdiction']})" if bo.get("jurisdiction") else ""
-                lines.append(f"  - {bo['name']}{jur}{sa}")
-
+        lines.append("```")
+        # Truncate tree for executive summary — show max 15 lines
+        tree_lines = tree["tree_text"].split("\n")
+        if len(tree_lines) > 15:
+            lines.extend(tree_lines[:15])
+            lines.append(f"  ... ({len(tree_lines) - 15} more lines in detailed report)")
+        else:
+            lines.extend(tree_lines)
+        lines.append("```")
         lines.append("")
 
     # Adversarial exposure summary
@@ -611,12 +806,9 @@ def generate_report(summary: Dict, meta: Dict, source_file: str, rows_for_title:
             lines.append(f"> This combination represents a potential critical supply chain vulnerability.")
             lines.append("")
 
-    # AFIDA depth comparison
-    # The real chain length is the number of distinct layering entities
-    # in the beneficial ownership chain, not just the BFS depth
-    # The real chain length is approximated by the number of distinct
-    # jurisdictions traversed in the ownership chain. Each jurisdiction
-    # hop represents a layer of corporate structure.
+    # AFIDA depth comparison — use the ownership tree chain length
+    tree = summary.get("ownership_tree", {})
+    tree_chain_length = tree.get("chain_length", 0)
     all_jurisdictions = set()
     for bo in summary["beneficial_owners"]:
         j = bo.get("jurisdiction", "")
@@ -626,12 +818,11 @@ def generate_report(summary: Dict, meta: Dict, source_file: str, rows_for_title:
         j = inc.get("jurisdiction", "")
         if j:
             all_jurisdictions.add(j)
-    # Also count adversarial/conduit/opacity jurisdictions from country associations
     all_jurisdictions.update(summary["adversarial_jurisdictions"])
     all_jurisdictions.update(summary["conduit_jurisdictions"])
     all_jurisdictions.update(summary["opacity_jurisdictions"])
 
-    effective_depth = max(summary["max_chain_depth"], len(all_jurisdictions))
+    effective_depth = max(summary["max_chain_depth"], len(all_jurisdictions), tree_chain_length)
 
     lines.append("---")
     lines.append("")
@@ -657,72 +848,24 @@ def generate_report(summary: Dict, meta: Dict, source_file: str, rows_for_title:
         lines.append(f"> **{depth_gap} layers beyond** AFIDA's typical self-reporting depth.")
         lines.append("")
 
-    # Ownership chain narrative
-    if summary["beneficial_owners"] or summary["incorporated_in"]:
+    # Ownership Chain Tree
+    tree = summary.get("ownership_tree", {})
+    if tree.get("tree_text"):
         lines.append("---")
         lines.append("")
-        lines.append("## Ownership Chain")
+        lines.append("## Ownership Chain Tree")
         lines.append("")
-
-        # Build chain from incorporated_in + beneficial_owner edges
-        # Root company at the bottom, owners ascending upward
-        chain_entities = []
-
-        # Start with the root company
-        root_name = title_name
-        root_inc = None
-        for inc in summary["incorporated_in"]:
-            if inc["company"].upper() == root_name.upper() or root_name.upper() in inc["company"].upper():
-                root_inc = inc
-                break
-
+        lines.append("Reads top-down: ultimate owners at top, subsidiaries at bottom.")
+        lines.append(f"The investigated entity is marked with `*`.")
+        lines.append("")
+        lines.append("| Metric | Value |")
+        lines.append("|---|---|")
+        lines.append(f"| **Chain Length** | {tree.get('chain_length', 0)} tiers |")
+        lines.append(f"| **Owners Above** | {tree.get('max_ancestor_depth', 0)} levels ({len(tree.get('ancestors', []))} entities) |")
+        lines.append(f"| **Subsidiaries Below** | {tree.get('max_descendant_depth', 0)} levels ({len(tree.get('descendants', []))} entities) |")
+        lines.append("")
         lines.append("```")
-        if root_inc:
-            lines.append(f"{root_name}")
-            lines.append(f"  Incorporated in: {root_inc['jurisdiction']}")
-            if root_inc['detail']:
-                lines.append(f"  Industry: {root_inc['detail']}")
-        else:
-            lines.append(f"{root_name}")
-
-        # Show beneficial owners grouped by depth
-        depth_0_bos = [bo for bo in summary["beneficial_owners"]
-                       if bo.get("_depth", 0) == 0]
-        depth_1_bos = [bo for bo in summary["beneficial_owners"]
-                       if bo.get("_depth", 0) == 1]
-
-        # If no depth info, show all BOs as depth 0
-        if not depth_0_bos and not depth_1_bos:
-            depth_0_bos = summary["beneficial_owners"]
-
-        if depth_0_bos:
-            lines.append(f"  |")
-            lines.append(f"  Beneficial Owners (direct):")
-            for bo in depth_0_bos:
-                detail = f" ({bo['detail']})" if bo['detail'] else ""
-                sa = f" [{bo['state_affiliation']}]" if bo.get('state_affiliation') else ""
-                jur = f" - {bo['jurisdiction']}" if bo.get('jurisdiction') else ""
-                lines.append(f"    <- {bo['name']}{detail}{jur}{sa}")
-
-        if depth_1_bos:
-            lines.append(f"  |")
-            lines.append(f"  Beneficial Owners (depth 1 - owners of owners):")
-            for bo in depth_1_bos:
-                detail = f" ({bo['detail']})" if bo['detail'] else ""
-                sa = f" [{bo['state_affiliation']}]" if bo.get('state_affiliation') else ""
-                jur = f" - {bo['jurisdiction']}" if bo.get('jurisdiction') else ""
-                lines.append(f"      <- {bo['name']}{detail}{jur}{sa}")
-
-        # Show other incorporated_in entities (discovered at depth > 0)
-        other_incs = [inc for inc in summary["incorporated_in"]
-                      if inc["company"].upper() != root_name.upper()
-                      and root_name.upper() not in inc["company"].upper()]
-        if other_incs:
-            lines.append(f"  |")
-            lines.append(f"  Related Entities (discovered in chain):")
-            for inc in other_incs:
-                lines.append(f"    {inc['company']} -> {inc['jurisdiction']}")
-
+        lines.append(tree["tree_text"])
         lines.append("```")
         lines.append("")
 

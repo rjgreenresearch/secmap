@@ -24,6 +24,15 @@ Usage:
     # Scan companies matching a name pattern
     python run_research.py --search "china"
 
+    # XBRL structured country code search (zero false positives)
+    python run_research.py --xbrl-search CN --xbrl-dir data/SEC/aqfsn
+
+    # All adversarial nations via XBRL country codes
+    python run_research.py --all-adversarial-xbrl --xbrl-dir data/SEC/aqfsn
+
+    # Combined: name search + XBRL enrichment
+    python run_research.py --search "china" --xbrl-dir data/SEC/aqfsn
+
     # Resume a previous run
     python run_research.py --exchange NYSE --resume run_20260327_research_NYSE
 """
@@ -31,6 +40,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import logging
 import os
@@ -46,6 +56,7 @@ from secmap.ownership_mapper import run_secmap
 from secmap.csv_writer import write_edges_to_csv
 from secmap.metadata import generate_run_metadata
 from report_generator import load_csv, analyze_rows, compute_risk_rating
+from secmap.adversarial_search import is_country_keyword, expand_search, expand_search_by_category
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -103,7 +114,7 @@ def load_completed_ciks(run_dir: str) -> set:
 
 def process_cik(cik: str, name: str, run_dir: str) -> dict:
     """Process a single CIK and return result summary."""
-    logger = logging.getLogger(f"research.{cik}")
+    logger = logging.getLogger("research")
     out_csv = os.path.join(run_dir, "per_cik", f"cik_{cik}.csv")
 
     result = {
@@ -149,6 +160,7 @@ def process_cik(cik: str, name: str, run_dir: str) -> dict:
             "edges": len(secmap_result.edges),
             "filings": secmap_result.filings_processed,
             "visited_ciks": len(secmap_result.visited_ciks),
+            "output_file": out_csv,
         })
 
         logger.info(
@@ -156,9 +168,15 @@ def process_cik(cik: str, name: str, run_dir: str) -> dict:
             cik, name, result["edges"], result.get("filings", 0),
         )
 
+        # Explicitly free the large objects before returning
+        del secmap_result
+        del metadata
+
     except Exception as e:
         result["error"] = str(e)
         logger.error("CIK %s (%s) FAILED: %s", cik, name, e)
+
+    return result
 
     return result
 
@@ -176,8 +194,22 @@ def main():
     parser.add_argument("--cik-file", help="File with one CIK per line")
     parser.add_argument("--cik-list", nargs="+", help="Explicit list of CIKs")
     parser.add_argument("--limit", type=int, default=0, help="Max CIKs to process (0=all)")
-    parser.add_argument("--resume", help="Resume a previous run directory")
+    parser.add_argument("--resume", metavar="RUN_DIR",
+                        help="Resume a previous run (pass the run directory name, e.g. 20260401_013958_all_adversarial)")
     parser.add_argument("--run-name", help="Custom run directory name")
+    parser.add_argument("--all-adversarial", action="store_true",
+                        help="Scan all PASS Act adversarial nations in sequence")
+    # XBRL structured search options
+    parser.add_argument("--xbrl-search",
+                        help="Search by ISO 3166-1 country code in XBRL SUB data (e.g. CN, RU, IR)")
+    parser.add_argument("--xbrl-dir", default="",
+                        help="Directory containing XBRL quarterly/monthly data")
+    parser.add_argument("--xbrl-field", default="any",
+                        choices=["countryba", "countryinc", "countryma", "any"],
+                        help="Which XBRL country field to search (default: any)")
+    parser.add_argument("--all-adversarial-xbrl", action="store_true",
+                        help="Search all adversarial nations via XBRL country codes")
+
     args = parser.parse_args()
 
     # Load SEC universe
@@ -186,15 +218,78 @@ def main():
 
     # Determine target CIKs
     targets = []
+    deferred_logs = []  # Messages generated before logger is initialized
+    expansion_report = None
 
     if args.exchange:
         companies = universe.by_exchange(args.exchange)
         targets = [(c.cik, c.name) for c in companies]
         run_label = f"exchange_{args.exchange}"
     elif args.search:
-        companies = universe.search(args.search)
-        targets = [(c.cik, c.name) for c in companies]
-        run_label = f"search_{args.search.replace(' ', '_')}"
+        keyword = args.search.strip()
+
+        if is_country_keyword(keyword):
+            # Adversarial-nation expansion: auto-expand into all search strategies
+            categories = expand_search_by_category(keyword)
+            all_terms = expand_search(keyword)
+
+            deferred_logs.append("=" * 60)
+            deferred_logs.append("ADVERSARIAL-NATION SEARCH EXPANSION")
+            deferred_logs.append(f"  Keyword: '{keyword}'")
+            deferred_logs.append(f"  Expanded to {len(all_terms)} search terms across {len(categories)} categories:")
+            for cat, terms in categories.items():
+                suffix = f" (+{len(terms)-6} more)" if len(terms) > 6 else ""
+                deferred_logs.append(f"    {cat}: {', '.join(terms[:6])}{suffix}")
+            deferred_logs.append("=" * 60)
+
+            # Run all search terms, deduplicate by CIK
+            seen_ciks = set()
+            targets = []
+            match_sources = {}  # CIK -> list of (term, category) that matched
+
+            for cat, terms in categories.items():
+                for term in terms:
+                    hits = universe.search(term)
+                    for c in hits:
+                        if c.cik not in seen_ciks:
+                            seen_ciks.add(c.cik)
+                            targets.append((c.cik, c.name))
+                            match_sources[c.cik] = []
+                        match_sources[c.cik].append((term, cat))
+
+            # Log discovery summary
+            deferred_logs.append(f"Discovery results: {len(targets)} unique CIKs from {len(all_terms)} search terms")
+            for cat, terms in categories.items():
+                cat_ciks = set()
+                for term in terms:
+                    for c in universe.search(term):
+                        cat_ciks.add(c.cik)
+                deferred_logs.append(f"  {cat}: {len(cat_ciks)} unique CIKs")
+
+            # Save expansion manifest
+            expansion_report = {
+                "keyword": keyword,
+                "total_terms": len(all_terms),
+                "categories": {cat: terms for cat, terms in categories.items()},
+                "unique_ciks_found": len(targets),
+                "match_sources": {
+                    cik: [{"term": t, "category": c} for t, c in sources]
+                    for cik, sources in match_sources.items()
+                },
+                "targets": [
+                    {"cik": cik, "name": name,
+                     "matched_by": [t for t, c in match_sources.get(cik, [])]}
+                    for cik, name in targets
+                ],
+            }
+
+            run_label = f"search_{keyword.replace(' ', '_')}"
+
+        else:
+            # Standard single-keyword search (unchanged behavior)
+            companies = universe.search(keyword)
+            targets = [(c.cik, c.name) for c in companies]
+            run_label = f"search_{keyword.replace(' ', '_')}"
     elif args.cik_file:
         with open(args.cik_file, "r") as f:
             ciks = [line.strip() for line in f if line.strip()]
@@ -203,6 +298,205 @@ def main():
     elif args.cik_list:
         targets = [(cik, universe.by_cik(cik).name if universe.by_cik(cik) else f"CIK {cik}") for cik in args.cik_list]
         run_label = "custom"
+    elif args.all_adversarial:
+        from secmap.adversarial_search import all_countries, expand_search, expand_search_by_category
+
+        seen_ciks = set()
+        targets = []
+        match_sources = {}
+        nation_counts = {}
+
+        for country in all_countries():
+            for cat, terms in expand_search_by_category(country).items():
+                for term in terms:
+                    hits = universe.search(term)
+                    for c in hits:
+                        if c.cik not in seen_ciks:
+                            seen_ciks.add(c.cik)
+                            targets.append((c.cik, c.name))
+                            match_sources[c.cik] = []
+                        match_sources[c.cik].append((term, cat, country))
+
+            nation_ciks = sum(1 for cik, sources in match_sources.items()
+                              if any(s[2] == country for s in sources))
+            nation_counts[country] = nation_ciks
+
+        deferred_logs.append(f"All-adversarial scan: {len(targets)} unique CIKs across {len(nation_counts)} nations")
+        for country, count in sorted(nation_counts.items(), key=lambda x: -x[1]):
+            deferred_logs.append(f"  {country.upper()}: {count} CIKs")
+
+        # Tier 3: XBRL enrichment for --all-adversarial
+        if args.xbrl_dir and os.path.isdir(args.xbrl_dir):
+            from secmap.xbrl_sub import XBRLSubIndex
+            from secmap.adversarial_xbrl import ADVERSARIAL_CODES
+
+            deferred_logs.append("XBRL Tier 3 enrichment for all-adversarial scan...")
+            sub_index = XBRLSubIndex()
+            sub_index.load_all_months(args.xbrl_dir)
+
+            existing_ciks = {cik for cik, _ in targets}
+            xbrl_added = 0
+            for code in ADVERSARIAL_CODES:
+                xbrl_ciks = set()
+                for r in sub_index.by_country(code):
+                    xbrl_ciks.add(r.cik)
+                for r in sub_index.by_country_inc(code):
+                    xbrl_ciks.add(r.cik)
+                for recs in sub_index._by_cik.values():
+                    for r in recs:
+                        if r.countryma == code:
+                            xbrl_ciks.add(r.cik)
+                new_ciks = xbrl_ciks - existing_ciks
+                for cik in sorted(new_ciks):
+                    best = max(sub_index.by_cik(cik), key=lambda r: r.filed or "")
+                    targets.append((cik, best.name))
+                    existing_ciks.add(cik)
+                    xbrl_added += 1
+
+            deferred_logs.append(f"  XBRL added {xbrl_added} CIKs not found by name search (total now {len(targets)})")
+
+        run_label = "all_adversarial"
+
+    elif args.xbrl_search or args.all_adversarial_xbrl:
+        # ---------------------------------------------------------------
+        # XBRL structured country code search
+        # ---------------------------------------------------------------
+        xbrl_dir = args.xbrl_dir
+        if not xbrl_dir or not os.path.isdir(xbrl_dir):
+            print(f"ERROR: --xbrl-dir is required and must exist for XBRL search")
+            sys.exit(1)
+
+        from secmap.xbrl_sub import XBRLSubIndex
+        from secmap.adversarial_xbrl import (
+            ADVERSARIAL_CODES, CONDUIT_CODES, adversarial_scan,
+        )
+
+        deferred_logs.append("=" * 60)
+        deferred_logs.append("XBRL STRUCTURED COUNTRY CODE SEARCH")
+        deferred_logs.append(f"  Data directory: {xbrl_dir}")
+
+        sub_index = XBRLSubIndex()
+        sub_index.load_all_months(xbrl_dir)
+        xbrl_stats = sub_index.stats()
+        deferred_logs.append(
+            f"  Loaded {xbrl_stats['total_records']:,} records, "
+            f"{xbrl_stats['unique_ciks']:,} CIKs, "
+            f"{xbrl_stats['periods_loaded']} periods"
+        )
+
+        if args.all_adversarial_xbrl:
+            # Scan all adversarial nations
+            target_codes = list(ADVERSARIAL_CODES.keys())
+            deferred_logs.append(f"  Mode: all adversarial nations ({len(target_codes)} codes)")
+            run_label = "all_adversarial_xbrl"
+        else:
+            target_codes = [args.xbrl_search.upper()]
+            deferred_logs.append(f"  Mode: single country code {target_codes[0]}")
+            code_name = ADVERSARIAL_CODES.get(target_codes[0],
+                        CONDUIT_CODES.get(target_codes[0], target_codes[0]))
+            run_label = f"xbrl_{target_codes[0]}_{code_name.replace(' ', '_')}"
+
+        field = args.xbrl_field
+        deferred_logs.append(f"  Field: {field}")
+
+        # Collect matching CIKs
+        seen_ciks = set()
+        targets = []
+        xbrl_match_detail = {}  # cik -> {fields, codes, name, ...}
+
+        for code in target_codes:
+            if field == "any":
+                recs_ba = sub_index.by_country(code)
+                recs_inc = sub_index.by_country_inc(code)
+                # countryma requires iterating
+                recs_ma = [r for recs in sub_index._by_cik.values()
+                           for r in recs if r.countryma == code]
+                all_recs = {}
+                for r in recs_ba:
+                    all_recs.setdefault(r.cik, {"fields": set(), "rec": r})
+                    all_recs[r.cik]["fields"].add("countryba")
+                for r in recs_inc:
+                    all_recs.setdefault(r.cik, {"fields": set(), "rec": r})
+                    all_recs[r.cik]["fields"].add("countryinc")
+                for r in recs_ma:
+                    all_recs.setdefault(r.cik, {"fields": set(), "rec": r})
+                    all_recs[r.cik]["fields"].add("countryma")
+            elif field == "countryba":
+                all_recs = {r.cik: {"fields": {"countryba"}, "rec": r}
+                            for r in sub_index.by_country(code)}
+            elif field == "countryinc":
+                all_recs = {r.cik: {"fields": {"countryinc"}, "rec": r}
+                            for r in sub_index.by_country_inc(code)}
+            elif field == "countryma":
+                all_recs = {r.cik: {"fields": {"countryma"}, "rec": r}
+                            for r in [r for recs in sub_index._by_cik.values()
+                                      for r in recs if r.countryma == code]}
+
+            for cik, info in all_recs.items():
+                rec = info["rec"]
+                if cik not in seen_ciks:
+                    seen_ciks.add(cik)
+                    # Use most recent record for this CIK
+                    best = max(sub_index.by_cik(cik), key=lambda r: r.filed or "")
+                    targets.append((cik, best.name))
+                    xbrl_match_detail[cik] = {
+                        "name": best.name,
+                        "matched_code": code,
+                        "matched_fields": sorted(info["fields"]),
+                        "countryba": best.countryba,
+                        "countryinc": best.countryinc,
+                        "countryma": best.countryma,
+                        "sic": best.sic,
+                        "method": "xbrl_country_code",
+                    }
+                else:
+                    # Add additional matched fields/codes
+                    existing = xbrl_match_detail.get(cik, {})
+                    existing_fields = set(existing.get("matched_fields", []))
+                    existing_fields.update(info["fields"])
+                    existing["matched_fields"] = sorted(existing_fields)
+
+        deferred_logs.append(f"  Found {len(targets)} unique CIKs")
+
+        # Build per-code breakdown for the log
+        code_counts = {}
+        for cik, detail in xbrl_match_detail.items():
+            c = detail["matched_code"]
+            code_counts[c] = code_counts.get(c, 0) + 1
+        for c in sorted(code_counts, key=lambda x: -code_counts[x]):
+            name = ADVERSARIAL_CODES.get(c, CONDUIT_CODES.get(c, c))
+            deferred_logs.append(f"    {c} ({name}): {code_counts[c]} CIKs")
+
+        # Count intermediary patterns
+        intermediary_count = sum(
+            1 for d in xbrl_match_detail.values()
+            if d["countryba"] != d["countryinc"] and d["countryba"] and d["countryinc"]
+        )
+        deferred_logs.append(f"  Intermediary patterns (ba != inc): {intermediary_count}")
+        deferred_logs.append("=" * 60)
+
+        # Build expansion report
+        field_breakdown = {"countryba": 0, "countryinc": 0, "countryma": 0}
+        for d in xbrl_match_detail.values():
+            for f in d["matched_fields"]:
+                field_breakdown[f] = field_breakdown.get(f, 0) + 1
+
+        expansion_report = {
+            "method": "xbrl_country_code",
+            "xbrl_dir": xbrl_dir,
+            "xbrl_field": field,
+            "target_codes": target_codes,
+            "xbrl_stats": xbrl_stats,
+            "unique_ciks_found": len(targets),
+            "by_country_code": code_counts,
+            "by_field": field_breakdown,
+            "intermediary_patterns": intermediary_count,
+            "targets": [
+                {"cik": cik, "name": name, **xbrl_match_detail.get(cik, {})}
+                for cik, name in targets
+            ],
+        }
+
     else:
         print("Specify --exchange, --search, --cik-file, or --cik-list")
         print(f"\nAvailable exchanges: {universe.exchanges()}")
@@ -224,6 +518,10 @@ def main():
     setup_logging(os.path.join(run_dir, "logs", "research.log"))
 
     logger = logging.getLogger("research")
+
+    # Replay deferred log messages now that logger exists
+    for msg in deferred_logs:
+        logger.info(msg)
 
     # Resume support
     completed = load_completed_ciks(run_dir) if args.resume else set()
@@ -249,6 +547,12 @@ def main():
     }
     with open(os.path.join(run_dir, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
+
+    if expansion_report is not None:
+        expansion_path = os.path.join(run_dir, "expansion_report.json")
+        with open(expansion_path, "w", encoding="utf-8") as f:
+            json.dump(expansion_report, f, indent=2)
+        logger.info("Expansion report saved: %s", expansion_path)
 
     # Process
     results = []
@@ -284,10 +588,24 @@ def main():
                     os.rename(old_path, new_path)
                     result["output_file"] = new_path
                     logger.info("  -> %s (score %d)", rating, score)
+                del rows, summary  # free immediately
             except Exception as e:
                 logger.error("  Failed to flag: %s", e)
 
-        results.append(result)
+        # Keep only the compact summary, not the full result
+        results.append({
+            "cik": result["cik"],
+            "name": result["name"],
+            "status": result["status"],
+            "edges": result.get("edges", 0),
+            "risk_rating": result.get("risk_rating", ""),
+            "risk_score": result.get("risk_score", 0),
+            "error": result.get("error"),
+        })
+
+        # Periodic garbage collection to prevent memory bloat
+        if (i + 1) % 10 == 0:
+            gc.collect()
 
         # Save progress periodically
         if (i + 1) % 50 == 0:

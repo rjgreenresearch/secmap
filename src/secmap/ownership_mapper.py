@@ -15,7 +15,8 @@ High-level orchestrator for SECMap:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+import os
+from dataclasses import dataclass, field
 from typing import List, Set, Dict, Optional
 
 from .cik_discovery import walk_cik_universe, DiscoveryConfig
@@ -41,6 +42,10 @@ class SECMapResult:
     filings_processed: int
     edges: List
     company_info: Dict  # cik -> {"name": ..., "stateOfIncorporation": ...}
+    xbrl_enriched: bool = False
+    descension_ciks: int = 0
+    descension_edges: int = 0
+    xbrl_resolved_institutions: int = 0
 
 
 # US state codes to full names
@@ -154,8 +159,18 @@ def run_secmap(
     max_filings_per_cik: int,
     issuer_name_override: Optional[str] = None,
     issuer_country_override: Optional[str] = None,
+    xbrl_data_dir: str = "",
+    enable_descension: bool = False,
+    descension_depth: int = 3,
 ) -> SECMapResult:
     logger.info("Starting SECMap orchestrator for root CIK %s", root_cik)
+
+    # ===================================================================
+    # PHASE 1: Ascension — BFS upward through ownership chains
+    # ===================================================================
+    logger.info("=" * 60)
+    logger.info("PHASE 1: Ascension (upward ownership chain traversal)")
+    logger.info("=" * 60)
 
     # Step 1: Discover CIK universe
     try:
@@ -259,6 +274,141 @@ def run_secmap(
         except Exception as e:
             logger.error("Country association edge construction failed: %s", e)
 
+        # Free the parsed sections to release filing content memory
+        del sections
+
+    # Release filing content — the DiscoveredFiling objects hold multi-MB
+    # HTML strings that are no longer needed after edge extraction.
+    # DiscoveryResult is frozen, so we can't delete .filings directly,
+    # but we can let the local reference go out of scope after this point.
+    filings_processed_count = len(discovery.filings)
+
+    # ===================================================================
+    # PHASE 2: XBRL Enrichment — descension + institution cross-reference
+    # ===================================================================
+    xbrl_enriched = False
+    desc_cik_count = 0
+    desc_edge_count = 0
+    resolved_inst_count = 0
+
+    # Auto-enable descension if xbrl_data_dir is provided
+    if xbrl_data_dir and not enable_descension:
+        enable_descension = True
+
+    if enable_descension and xbrl_data_dir:
+        logger.info("=" * 60)
+        logger.info("PHASE 2: XBRL Enrichment (descension + cross-reference)")
+        logger.info("=" * 60)
+
+        try:
+            from .xbrl_sub import XBRLSubIndex
+            from .descension import descend_from_cik
+
+            # Step 2a: Load XBRL SUB data
+            sub_index = XBRLSubIndex()
+            if os.path.isdir(xbrl_data_dir):
+                sub_index.load_all_months(xbrl_data_dir)
+            else:
+                logger.warning("XBRL data directory not found: %s", xbrl_data_dir)
+                sub_index = None
+
+            if sub_index and sub_index._total_rows > 0:
+                xbrl_enriched = True
+                xbrl_stats = sub_index.stats()
+                logger.info(
+                    "XBRL SUB loaded: %d records, %d CIKs, %d periods",
+                    xbrl_stats["total_records"],
+                    xbrl_stats["unique_ciks"],
+                    xbrl_stats["periods_loaded"],
+                )
+
+                # Step 2b: Run descension from root CIK
+                logger.info("Running descension from root CIK %s (depth=%d)", root_cik, descension_depth)
+                desc_result = descend_from_cik(
+                    root_cik, sub_index,
+                    max_depth=descension_depth,
+                )
+                desc_cik_count = len(desc_result.visited_ciks) - 1  # exclude root
+                desc_edge_count = len(desc_result.edges)
+                edges.extend(desc_result.edges)
+
+                logger.info(
+                    "Descension: %d subsidiary CIKs, %d edges",
+                    desc_cik_count, desc_edge_count,
+                )
+
+                # Also descend from every CIK visited during ascension
+                for visited_cik in discovery.visited_ciks:
+                    if visited_cik == root_cik:
+                        continue
+                    try:
+                        sub_desc = descend_from_cik(
+                            visited_cik, sub_index,
+                            max_depth=max(1, descension_depth - 1),
+                        )
+                        if sub_desc.edges:
+                            edges.extend(sub_desc.edges)
+                            desc_cik_count += len(sub_desc.visited_ciks) - 1
+                            desc_edge_count += len(sub_desc.edges)
+                            logger.debug(
+                                "Descension from visited CIK %s: %d edges",
+                                visited_cik, len(sub_desc.edges),
+                            )
+                    except Exception as e:
+                        logger.debug("Descension failed for CIK %s: %s", visited_cik, e)
+
+                # Step 2c: Cross-reference institution names against XBRL SUB
+                # Find institution entities from ascension edges that can be
+                # resolved to CIKs via the XBRL SUB name index
+                inst_names = set()
+                for edge in edges:
+                    if edge.relationship == "institution_role":
+                        inst_names.add(edge.source.cleaned_name)
+
+                for inst_name in inst_names:
+                    try:
+                        matches = sub_index.search(inst_name)
+                        if matches and len(matches) == 1:
+                            match = matches[0]
+                            # Only resolve if the match is a strong name match
+                            if match.name.upper() == inst_name.upper():
+                                resolved_inst_count += 1
+                                logger.debug(
+                                    "XBRL resolved institution '%s' -> CIK %s",
+                                    inst_name, match.cik,
+                                )
+                                # If this CIK wasn't visited, descend into it
+                                if match.cik not in discovery.visited_ciks:
+                                    try:
+                                        inst_desc = descend_from_cik(
+                                            match.cik, sub_index, max_depth=1,
+                                        )
+                                        if inst_desc.edges:
+                                            edges.extend(inst_desc.edges)
+                                            desc_edge_count += len(inst_desc.edges)
+                                    except Exception:
+                                        pass
+                    except Exception as e:
+                        logger.debug("XBRL cross-ref failed for '%s': %s", inst_name, e)
+
+                logger.info(
+                    "XBRL enrichment complete: %d descension CIKs, %d descension edges, "
+                    "%d institutions resolved",
+                    desc_cik_count, desc_edge_count, resolved_inst_count,
+                )
+
+        except ImportError as e:
+            logger.warning("XBRL modules not available, skipping enrichment: %s", e)
+        except Exception as e:
+            logger.error("XBRL enrichment failed: %s", e)
+
+    # ===================================================================
+    # PHASE 3: Deduplication
+    # ===================================================================
+    logger.info("=" * 60)
+    logger.info("PHASE 3: Deduplication")
+    logger.info("=" * 60)
+
     # Step 3: Deduplicate edges
     try:
         deduped_edges = merge_and_deduplicate_edges(edges)
@@ -267,15 +417,20 @@ def run_secmap(
         deduped_edges = edges
 
     logger.info(
-        "SECMap completed: %d raw edges -> %d deduplicated edges",
+        "SECMap completed: %d raw edges -> %d deduplicated edges%s",
         len(edges),
         len(deduped_edges),
+        f" (incl. {desc_edge_count} descension)" if desc_edge_count else "",
     )
 
     return SECMapResult(
         root_cik=discovery.root_cik,
         visited_ciks=discovery.visited_ciks,
-        filings_processed=len(discovery.filings),
+        filings_processed=filings_processed_count,
         edges=deduped_edges,
         company_info=discovery.company_info,
+        xbrl_enriched=xbrl_enriched,
+        descension_ciks=desc_cik_count,
+        descension_edges=desc_edge_count,
+        xbrl_resolved_institutions=resolved_inst_count,
     )
