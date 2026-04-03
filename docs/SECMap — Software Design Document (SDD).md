@@ -1,4 +1,4 @@
-# SECMap — Software Design Document (SDD)
+# SECMap -- Software Design Document (SDD)
 IEEE 1016‑Style Software Design Description  
 Version 2.0
 
@@ -53,7 +53,7 @@ Responsibilities: Positional person extraction from structural locations
 Algorithm: /s/ pattern with title‑keyword lookahead, By: pattern, Name+age pattern, title adjacency  
 Key design: Lookahead handles concatenated text (e.g., "/s/ C. Shane SmithChief Executive Officer")  
 Validation: Org suffix rejection, Roman numeral fragment rejection  
-No generic [A-Z][a-z]+ scanning — structural positions only  
+No generic [A-Z][a-z]+ scanning -- structural positions only  
 
 3.5 institution_extractor.py (Extract Layer)
 Responsibilities: Corporate entity extraction  

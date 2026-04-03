@@ -32,15 +32,15 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Risk tier definitions
 # ---------------------------------------------------------------------------
-# ADVERSARIAL  — Nations with known state-directed economic warfare,
+# ADVERSARIAL  -- Nations with known state-directed economic warfare,
 #                espionage, or sanctions programs targeting the US.
-# CONDUIT      — Jurisdictions frequently used as intermediate layering
+# CONDUIT      -- Jurisdictions frequently used as intermediate layering
 #                nodes in adversarial ownership chains.
-# OPACITY      — Secrecy jurisdictions with weak beneficial-ownership
+# OPACITY      -- Secrecy jurisdictions with weak beneficial-ownership
 #                disclosure; common shell-company domiciles.
-# MONITORED    — Jurisdictions with partial transparency or FATF
+# MONITORED    -- Jurisdictions with partial transparency or FATF
 #                grey-list history.
-# STANDARD     — Allied or transparent jurisdictions.
+# STANDARD     -- Allied or transparent jurisdictions.
 # ---------------------------------------------------------------------------
 
 RISK_ADVERSARIAL = "ADVERSARIAL"
@@ -63,7 +63,7 @@ class JurisdictionResult:
 
 _JURISDICTIONS = {
     # =======================================================================
-    # ADVERSARIAL — primary targets for UBO chain terminus detection
+    # ADVERSARIAL -- primary targets for UBO chain terminus detection
     # =======================================================================
     RISK_ADVERSARIAL: {
         "China": [
@@ -112,7 +112,7 @@ _JURISDICTIONS = {
     },
 
     # =======================================================================
-    # CONDUIT — frequently used as intermediate layering nodes
+    # CONDUIT -- frequently used as intermediate layering nodes
     # in adversarial ownership chains (PRC/Russia → conduit → US)
     # =======================================================================
     RISK_CONDUIT: {
@@ -148,7 +148,7 @@ _JURISDICTIONS = {
     },
 
     # =======================================================================
-    # OPACITY — secrecy jurisdictions / shell-company domiciles
+    # OPACITY -- secrecy jurisdictions / shell-company domiciles
     # =======================================================================
     RISK_OPACITY: {
         # Caribbean
@@ -203,7 +203,7 @@ _JURISDICTIONS = {
     },
 
     # =======================================================================
-    # MONITORED — partial transparency, FATF grey-list history,
+    # MONITORED -- partial transparency, FATF grey-list history,
     # or known to facilitate layered structures
     # =======================================================================
     RISK_MONITORED: {
@@ -236,7 +236,7 @@ _JURISDICTIONS = {
     },
 
     # =======================================================================
-    # STANDARD — allied / transparent jurisdictions
+    # STANDARD -- allied / transparent jurisdictions
     # =======================================================================
     RISK_STANDARD: {
         "United States": [

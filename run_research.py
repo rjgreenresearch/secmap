@@ -47,6 +47,7 @@ import os
 import sys
 import time
 import uuid
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
@@ -187,7 +188,7 @@ def process_cik(cik: str, name: str, run_dir: str) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="SECMap Research-Scale Runner — systematic BOI mapping across SEC universe",
+        description="SECMap Research-Scale Runner -- systematic BOI mapping across SEC universe",
     )
     parser.add_argument("--exchange", help="Scan all CIKs on this exchange (NYSE, Nasdaq, OTC)")
     parser.add_argument("--search", help="Scan companies matching this name pattern")
@@ -209,6 +210,12 @@ def main():
                         help="Which XBRL country field to search (default: any)")
     parser.add_argument("--all-adversarial-xbrl", action="store_true",
                         help="Search all adversarial nations via XBRL country codes")
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Parallel worker processes for CIK processing (default 1)")
+    parser.add_argument("--warm-cache", action="store_true",
+                        help="Pre-fetch all filings into cache before processing (async)")
+    parser.add_argument("--xbrl-prefilter", action="store_true",
+                        help="Skip CIKs not present in XBRL SUB data (requires --xbrl-dir)")
 
     args = parser.parse_args()
 
@@ -527,6 +534,19 @@ def main():
     completed = load_completed_ciks(run_dir) if args.resume else set()
     remaining = [(cik, name) for cik, name in targets if cik not in completed]
 
+    # XBRL pre-filter: skip CIKs not in XBRL SUB data
+    if args.xbrl_prefilter and args.xbrl_dir and os.path.isdir(args.xbrl_dir):
+        from secmap.xbrl_sub import XBRLSubIndex
+        logger.info("XBRL pre-filter: loading SUB index...")
+        pf_index = XBRLSubIndex()
+        pf_index.load_all_months(args.xbrl_dir)
+        xbrl_ciks = pf_index.unique_ciks()
+        before = len(remaining)
+        remaining = [(cik, name) for cik, name in remaining if cik in xbrl_ciks]
+        logger.info("XBRL pre-filter: %d -> %d CIKs (%d skipped, not in XBRL)",
+                    before, len(remaining), before - len(remaining))
+        del pf_index  # free memory
+
     logger.info("SECMap Research Run")
     logger.info("  Target: %s", run_label)
     logger.info("  Total CIKs: %d", len(targets))
@@ -554,70 +574,147 @@ def main():
             json.dump(expansion_report, f, indent=2)
         logger.info("Expansion report saved: %s", expansion_path)
 
-    # Process
+    # ===================================================================
+    # Cache warming (optional): pre-fetch all filings asynchronously
+    # ===================================================================
+    if args.warm_cache and remaining:
+        logger.info("=" * 60)
+        logger.info("CACHE WARMING: pre-fetching filings for %d CIKs", len(remaining))
+        logger.info("=" * 60)
+        import asyncio
+        from secmap.sec_fetch_async import async_warm_cache
+        warm_ciks = [cik for cik, _ in remaining]
+        warm_start = time.time()
+        asyncio.run(async_warm_cache(
+            ciks=warm_ciks,
+            form_types=FORM_TYPES,
+            max_filings=MAX_FILINGS_PER_CIK,
+            max_concurrent=8,
+        ))
+        warm_elapsed = time.time() - warm_start
+        logger.info("Cache warming complete: %.1f seconds for %d CIKs", warm_elapsed, len(warm_ciks))
+
+    # ===================================================================
+    # Process CIKs
+    # ===================================================================
     results = []
     start_time = time.time()
+    num_workers = max(1, args.workers)
 
-    for i, (cik, name) in enumerate(remaining):
-        elapsed = time.time() - start_time
-        rate = (i / elapsed * 3600) if elapsed > 0 and i > 0 else 0
-        eta_hours = ((len(remaining) - i) / rate) if rate > 0 else 0
+    if num_workers > 1:
+        # --- Multiprocessing mode ---
+        logger.info("Processing with %d parallel workers", num_workers)
+        executor = ProcessPoolExecutor(max_workers=num_workers)
+        try:
+            future_map = {}
+            for cik, name in remaining:
+                future = executor.submit(process_cik, cik, name, run_dir)
+                future_map[future] = (cik, name)
 
-        logger.info(
-            "[%d/%d] CIK %s (%s) — %.0f CIKs/hr, ETA %.1f hrs",
-            i + 1, len(remaining), cik, name[:40], rate, eta_hours,
-        )
+            for future in as_completed(future_map):
+                cik, name = future_map[future]
+                try:
+                    result = future.result()
+                except Exception as e:
+                    result = {"cik": cik, "name": name, "status": "failed",
+                              "edges": 0, "error": str(e)}
 
-        result = process_cik(cik, name, run_dir)
+                done = len(results) + 1
+                elapsed = time.time() - start_time
+                rate = (done / elapsed * 3600) if elapsed > 0 else 0
+                eta_hours = ((len(remaining) - done) / rate) if rate > 0 else 0
+                logger.info(
+                    "[%d/%d] CIK %s (%s): %s (%d edges) -- %.0f/hr, ETA %.1fh",
+                    done, len(remaining), cik, name[:30],
+                    result.get("status", "?"), result.get("edges", 0),
+                    rate, eta_hours,
+                )
 
-        # Flag immediately so partial runs still get risk prefixes
-        if result["status"] == "ok" and os.path.exists(result.get("output_file", "")):
-            try:
-                rows = load_csv(result["output_file"])
-                if rows:
-                    summary = analyze_rows(rows)
-                    rating, score, reasons = compute_risk_rating(summary)
-                    result["risk_rating"] = rating
-                    result["risk_score"] = score
-                    result["company_name"] = sorted(summary["company_names"])[0] if summary["company_names"] else name
-                    result["critical_sectors"] = summary.get("critical_sectors", [])
-                    result["adversarial_jurisdictions"] = sorted(summary.get("adversarial_jurisdictions", set()))
-                    old_path = result["output_file"]
-                    new_name = f"{rating}_{os.path.basename(old_path)}"
-                    new_path = os.path.join(os.path.dirname(old_path), new_name)
-                    os.rename(old_path, new_path)
-                    result["output_file"] = new_path
-                    logger.info("  -> %s (score %d)", rating, score)
-                del rows, summary  # free immediately
-            except Exception as e:
-                logger.error("  Failed to flag: %s", e)
+                # Flag immediately
+                if result.get("status") == "ok" and os.path.exists(result.get("output_file", "")):
+                    try:
+                        rows = load_csv(result["output_file"])
+                        if rows:
+                            summary = analyze_rows(rows)
+                            rating, score, _ = compute_risk_rating(summary)
+                            result["risk_rating"] = rating
+                            result["risk_score"] = score
+                            old_path = result["output_file"]
+                            new_name = f"{rating}_{os.path.basename(old_path)}"
+                            new_path = os.path.join(os.path.dirname(old_path), new_name)
+                            os.rename(old_path, new_path)
+                            logger.info("  -> %s (score %d)", rating, score)
+                        del rows, summary
+                    except Exception as e:
+                        logger.error("  Failed to flag: %s", e)
 
-        # Keep only the compact summary, not the full result
-        results.append({
-            "cik": result["cik"],
-            "name": result["name"],
-            "status": result["status"],
-            "edges": result.get("edges", 0),
-            "risk_rating": result.get("risk_rating", ""),
-            "risk_score": result.get("risk_score", 0),
-            "error": result.get("error"),
-        })
+                results.append({
+                    "cik": result["cik"], "name": result["name"],
+                    "status": result["status"], "edges": result.get("edges", 0),
+                    "risk_rating": result.get("risk_rating", ""),
+                    "error": result.get("error"),
+                })
+                if done % 10 == 0:
+                    gc.collect()
+        except KeyboardInterrupt:
+            logger.warning("KeyboardInterrupt -- shutting down workers...")
+            executor.shutdown(wait=False, cancel_futures=True)
+            logger.info("Workers shut down. %d CIKs completed before interrupt.", len(results))
+        finally:
+            executor.shutdown(wait=True)
+    else:
+        # --- Single-process mode ---
+        for i, (cik, name) in enumerate(remaining):
+            elapsed = time.time() - start_time
+            rate = (i / elapsed * 3600) if elapsed > 0 and i > 0 else 0
+            eta_hours = ((len(remaining) - i) / rate) if rate > 0 else 0
 
-        # Periodic garbage collection to prevent memory bloat
-        if (i + 1) % 10 == 0:
-            gc.collect()
+            logger.info(
+                "[%d/%d] CIK %s (%s) -- %.0f CIKs/hr, ETA %.1f hrs",
+                i + 1, len(remaining), cik, name[:40], rate, eta_hours,
+            )
 
-        # Save progress periodically
-        if (i + 1) % 50 == 0:
-            progress = {
-                "processed": i + 1,
-                "total": len(remaining),
-                "elapsed_hours": elapsed / 3600,
-                "rate_per_hour": rate,
-                "results": results[-50:],
-            }
-            with open(os.path.join(run_dir, "progress.json"), "w", encoding="utf-8") as f:
-                json.dump(progress, f, indent=2)
+            result = process_cik(cik, name, run_dir)
+
+            if result["status"] == "ok" and os.path.exists(result.get("output_file", "")):
+                try:
+                    rows = load_csv(result["output_file"])
+                    if rows:
+                        summary = analyze_rows(rows)
+                        rating, score, _ = compute_risk_rating(summary)
+                        result["risk_rating"] = rating
+                        result["risk_score"] = score
+                        old_path = result["output_file"]
+                        new_name = f"{rating}_{os.path.basename(old_path)}"
+                        new_path = os.path.join(os.path.dirname(old_path), new_name)
+                        os.rename(old_path, new_path)
+                        result["output_file"] = new_path
+                        logger.info("  -> %s (score %d)", rating, score)
+                    del rows, summary
+                except Exception as e:
+                    logger.error("  Failed to flag: %s", e)
+
+            results.append({
+                "cik": result["cik"], "name": result["name"],
+                "status": result["status"], "edges": result.get("edges", 0),
+                "risk_rating": result.get("risk_rating", ""),
+                "risk_score": result.get("risk_score", 0),
+                "error": result.get("error"),
+            })
+
+            if (i + 1) % 10 == 0:
+                gc.collect()
+
+            if (i + 1) % 50 == 0:
+                progress = {
+                    "processed": i + 1,
+                    "total": len(remaining),
+                    "elapsed_hours": elapsed / 3600,
+                    "rate_per_hour": rate,
+                    "results": results[-50:],
+                }
+                with open(os.path.join(run_dir, "progress.json"), "w", encoding="utf-8") as pf:
+                    json.dump(progress, pf, indent=2)
 
     # Final summary
     total_edges = sum(r.get("edges", 0) for r in results)

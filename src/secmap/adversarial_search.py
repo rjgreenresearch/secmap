@@ -9,7 +9,7 @@ terms for the SEC filing universe. When a researcher runs:
 the script currently finds 0 results because no SEC registrant has "russia"
 in its company name. This module expands "russia" into 30+ search terms
 including demonyms, legal entity suffixes, known SOEs, strategic companies,
-and city names — catching GAZPROM NEFT PJSC, LUKOIL PJSC, MECHEL PAO, etc.
+and city names -- catching GAZPROM NEFT PJSC, LUKOIL PJSC, MECHEL PAO, etc.
 
 Design follows jurisdiction_inference.py: structured dictionaries, risk-tier
 aware, deterministic, no external dependencies.
@@ -41,16 +41,16 @@ logger = logging.getLogger(__name__)
 # ===================================================================
 # Each adversarial/monitored nation has multiple search strategies:
 #
-#   country_names   — The country name + demonyms + abbreviations
-#   legal_suffixes  — Entity type suffixes unique to that nation's
+#   country_names   -- The country name + demonyms + abbreviations
+#   legal_suffixes  -- Entity type suffixes unique to that nation's
 #                     corporate law (e.g., PJSC for Russia, AG for Swiss)
-#   soe_names       — Known state-owned enterprises likely to file with SEC
-#   strategic_names — Strategic/major companies (private or public)
-#   city_names      — Major cities that appear in company names
+#   soe_names       -- Known state-owned enterprises likely to file with SEC
+#   strategic_names -- Strategic/major companies (private or public)
+#   city_names      -- Major cities that appear in company names
 #                     (e.g., "Beijing" in "Beijing Kunlun Tech Co")
 #
 # Legal suffixes that are shared across many nations (LLC, Ltd, Inc)
-# are NOT included — they would match thousands of unrelated companies.
+# are NOT included -- they would match thousands of unrelated companies.
 # Only suffixes with strong nation-specificity are listed.
 # ===================================================================
 
@@ -65,7 +65,7 @@ COUNTRY_SEARCH_EXPANSIONS: Dict[str, dict] = {
         ],
         "legal_suffixes": [
             # Chinese legal entity types are rarely in SEC names
-            # — most file under English names. Focus on name patterns.
+            # -- most file under English names. Focus on name patterns.
         ],
         "soe_names": [
             "sinopec", "petrochina", "cnooc", "china national",
@@ -109,7 +109,7 @@ COUNTRY_SEARCH_EXPANSIONS: Dict[str, dict] = {
             "russia", "russian",
         ],
         "legal_suffixes": [
-            # Russian corporate suffixes — high specificity
+            # Russian corporate suffixes -- high specificity
             "pjsc",    # Public Joint-Stock Company (most common for SEC filers)
             "pao",     # Same in Russian abbreviation
             "oao",     # Open Joint-Stock Company (older form)
@@ -239,7 +239,7 @@ COUNTRY_SEARCH_EXPANSIONS: Dict[str, dict] = {
             "belarusbank", "belgazprombank",
         ],
         "strategic_names": [
-            "epam",  # EPAM Systems — founded in Belarus, now US-listed
+            "epam",  # EPAM Systems -- founded in Belarus, now US-listed
         ],
         "city_names": [
             "minsk",

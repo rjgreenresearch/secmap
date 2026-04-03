@@ -49,7 +49,7 @@ class TestLoading:
     def test_correct_row_count(self):
         """Fixture has 15 data rows (1 header + 15 data)."""
         idx = _load_fixture()
-        # 15 rows but some share the same accession — dedup by adsh
+        # 15 rows but some share the same accession -- dedup by adsh
         assert idx._total_rows == 15
 
     def test_unique_cik_count(self):
@@ -209,7 +209,7 @@ class TestLookups:
         assert "100002" in ciks
 
     def test_by_country_inc_excludes_ba_only(self):
-        """CIK 300001 has countryba=CN but countryinc=KY — should NOT appear in by_country_inc('CN')."""
+        """CIK 300001 has countryba=CN but countryinc=KY -- should NOT appear in by_country_inc('CN')."""
         recs = self.idx.by_country_inc("CN")
         ciks = {r.cik for r in recs}
         assert "300001" not in ciks
@@ -268,7 +268,7 @@ class TestCoRegistrants:
         assert "100001" not in co
 
     def test_co_registrants_across_multiple_filings(self):
-        """CIK 400002 appears in two filings — second adds CIK 400006 as co-registrant."""
+        """CIK 400002 appears in two filings -- second adds CIK 400006 as co-registrant."""
         co = self.idx.co_registrants("400002")
         assert "400006" in co
 
@@ -302,7 +302,7 @@ class TestSearch:
         assert "300001" in ciks
 
     def test_search_deduplicates_by_cik(self):
-        """CIK 200001 has two filings — search should return it only once."""
+        """CIK 200001 has two filings -- search should return it only once."""
         results = self.idx.search("dragon tech")
         ciks = [r.cik for r in results]
         assert ciks.count("200001") == 1

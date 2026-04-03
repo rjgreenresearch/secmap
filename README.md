@@ -4,10 +4,10 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-green.svg)](https://www.python.org/downloads/)
-[![Tests: 257](https://img.shields.io/badge/tests-257-brightgreen.svg)]()
+[![Tests: 258](https://img.shields.io/badge/tests-258-brightgreen.svg)]()
 [![Deterministic](https://img.shields.io/badge/output-deterministic-orange.svg)]()
 
-SECMap traces beneficial ownership chains through SEC regulatory filings to their ultimate terminus — including chains that route through adversarial nations, conduit jurisdictions, and opacity havens. Given the same filings, it produces identical output, every time.
+SECMap traces beneficial ownership chains through SEC regulatory filings to their ultimate terminus -- including chains that route through adversarial nations, conduit jurisdictions, and opacity havens. Given the same filings, it produces identical output, every time.
 
 **Author:** Robert J. Green · [robert@rjgreenresearch.org](mailto:robert@rjgreenresearch.org) · [ORCID: 0009-0002-9097-1021](https://orcid.org/0009-0002-9097-1021) · [www.rjgreenresearch.org](https://www.rjgreenresearch.org)
 
@@ -15,7 +15,7 @@ SECMap traces beneficial ownership chains through SEC regulatory filings to thei
 
 ## Why SECMap Exists
 
-The USDA's Agricultural Foreign Investment Disclosure Act (AFIDA) traces foreign ownership of U.S. agricultural land to 2-3 layers. Real-world adversarial ownership structures use 7+ layers. The ChemChina → Syngenta acquisition chain runs through **seven corporate tiers** across **six jurisdictions** (China, Hong Kong, Luxembourg, Netherlands, Switzerland, United States) — using single-purpose vehicles that the SEC filing itself describes as having "not conducted any other activities or business."
+The USDA's Agricultural Foreign Investment Disclosure Act (AFIDA) traces foreign ownership of U.S. agricultural land to 2-3 layers. Real-world adversarial ownership structures use 7+ layers. The ChemChina → Syngenta acquisition chain runs through **seven corporate tiers** across **six jurisdictions** (China, Hong Kong, Luxembourg, Netherlands, Switzerland, United States) -- using single-purpose vehicles that the SEC filing itself describes as having "not conducted any other activities or business."
 
 AFIDA sees "Syngenta Seeds, LLC." The Chinese state-owned enterprise seven tiers above it is invisible.
 
@@ -25,9 +25,9 @@ SECMap was built to see through these structures. It is the primary research ins
 
 ## How This Tool Supports the Research
 
-SECMap operationalises the "three-system visibility gap" — the central finding of the companion paper (Green, 2026b). The paper argues that AFIDA sees entity names but not beneficial owners, the SEC sees parent companies but not AFIDA-registered subsidiaries, and state SOS records see everything but are siloed across 50 jurisdictions. SECMap is the system that traces ownership chains through the SEC layer, cross-references AFIDA entities against SEC registrants, catalogs state SOS access methods for the state layer, and quantifies the gap between all three.
+SECMap operationalises the "three-system visibility gap" -- the central finding of the companion paper (Green, 2026b). The paper argues that AFIDA sees entity names but not beneficial owners, the SEC sees parent companies but not AFIDA-registered subsidiaries, and state SOS records see everything but are siloed across 50 jurisdictions. SECMap is the system that traces ownership chains through the SEC layer, cross-references AFIDA entities against SEC registrants, catalogs state SOS access methods for the state layer, and quantifies the gap between all three.
 
-Every empirical claim in the paper — the 92.7% visibility gap, the seven-tier ChemChina chain, the 507,957 ownership edges, the zero SEC registrants for five PASS Act nations — was produced by this tool running against federal primary-source data. The results are fully reproducible (see [Reproducing the Paper's Results](#reproducing-the-papers-results) below).
+Every empirical claim in the paper -- the 92.7% visibility gap, the seven-tier ChemChina chain, the 507,957 ownership edges, the zero SEC registrants for five PASS Act nations -- was produced by this tool running against federal primary-source data. The results are fully reproducible (see [Reproducing the Paper's Results](#reproducing-the-papers-results) below).
 
 **Companion papers:**
 - Green, R.J. (2026a). "Spatial Clustering of Foreign Agricultural Acquisitions Near U.S. Military Installations." [SSRN](https://ssrn.com/author=10825096).
@@ -41,15 +41,15 @@ Every empirical claim in the paper — the 92.7% visibility gap, the seven-tier 
 |-----------|-------------|
 | **Recursive CIK Discovery** | Breadth-first traversal to 10 layers of ownership depth |
 | **Filing Parsing** | 10-K, 20-F, SC 13D, SC 13G, SC 13D/A, SC 13G/A, DEF 14A |
-| **Person Extraction** | Positional extraction from signature blocks, age patterns, title adjacency — zero false positives from boilerplate |
+| **Person Extraction** | Positional extraction from signature blocks, age patterns, title adjacency -- zero false positives from boilerplate |
 | **SC 13D/G Parsing** | Cover page beneficial ownership entries with percentage stakes |
 | **Jurisdiction Risk** | 5-tier classification across 135+ countries: adversarial, conduit, opacity, monitored, standard |
-| **State-Actor Affiliation** | SOE, Party-controlled, military-civil fusion, sovereign wealth fund, shell/proxy, PEP — across PRC, Russia, Iran, DPRK, and others |
-| **Obscuring Role Detection** | Nominee, proxy, intermediary, settlor, protector — flags layered ownership indicators |
+| **State-Actor Affiliation** | SOE, Party-controlled, military-civil fusion, sovereign wealth fund, shell/proxy, PEP -- across PRC, Russia, Iran, DPRK, and others |
+| **Obscuring Role Detection** | Nominee, proxy, intermediary, settlor, protector -- flags layered ownership indicators |
 | **AFIDA Cross-Reference** | Parses USDA AFIDA data, matches entities against SEC registrants, measures the federal visibility gap |
 | **Adversarial-Nation Search** | Auto-expands country keywords into SOE names, legal suffixes, strategic companies, and city names for comprehensive SEC universe discovery |
 | **XBRL Structured Search** | Zero-false-positive adversarial-nation identification using ISO 3166-1 country codes from SEC XBRL Financial Statement and Notes Data Sets (558K+ records, 2020–2026) |
-| **Descension Engine** | Downward ownership traversal via XBRL co-registrant CIKs — traces what a parent entity OWNS, complementing the ascension pipeline that traces who owns it |
+| **Descension Engine** | Downward ownership traversal via XBRL co-registrant CIKs -- traces what a parent entity OWNS, complementing the ascension pipeline that traces who owns it |
 | **Exhibit 21 Parsing** | Extracts subsidiary listings from 10-K Exhibit 21 documents using BeautifulSoup HTML table extraction with plain-text fallback; cross-references against XBRL SUB for CIK resolution |
 | **Ownership Chain Tree** | Full hierarchical tree rendering in reports showing owners above and subsidiaries below the investigated entity, with jurisdiction and risk tier tags at each node |
 | **State SOS Integration** | 51-jurisdiction access catalog, gap analyser comparing federal vs. state visibility |
@@ -88,7 +88,7 @@ python network_visualizer.py smithfield.csv --cik 91388 --root "SMITHFIELD FOODS
 ### AFIDA Cross-Reference
 
 ```bash
-# Download required data (not included — see Data Sources below)
+# Download required data (not included -- see Data Sources below)
 # 1. AFIDA 2024 holdings: AFIDACurrentHoldingsYR2024.xlsx from USDA FSA
 # 2. SEC tickers: company_tickers.json from sec.gov/files/company_tickers.json
 
@@ -110,11 +110,11 @@ Output:
 output/
 ├── afida_sec_matched.csv       # Entities with SEC CIK matches → feed to run_production.py
 ├── afida_unmatched.csv         # Entities with NO SEC presence → state SOS targets
-├── secmap_target_ciks.txt      # CIK list — paste directly into run_production.py
+├── secmap_target_ciks.txt      # CIK list -- paste directly into run_production.py
 └── afida_parse_summary.txt     # Coverage statistics and top entity tables
 ```
 
-The `secmap_target_ciks.txt` output drops directly into `run_production.py`'s TARGET_CIKS list. The `afida_unmatched.csv` identifies entities invisible to federal analysis — candidates for state SOS investigation via the gap analyser.
+The `secmap_target_ciks.txt` output drops directly into `run_production.py`'s TARGET_CIKS list. The `afida_unmatched.csv` identifies entities invisible to federal analysis -- candidates for state SOS investigation via the gap analyser.
 
 ### Production Batch
 
@@ -164,6 +164,28 @@ python run_research.py --xbrl-search CN --xbrl-dir data/SEC/aqfsn --xbrl-field c
 python run_research.py --exchange OTC
 ```
 
+### High-Performance Production Workflow
+
+For large-scale runs (500+ CIKs), use the three-step workflow:
+
+```bash
+# Step 1: Warm the disk cache (async HTTP, ~50-80 filings/sec)
+python cache_warmer.py --all-adversarial --xbrl-dir data/SEC/aqfsn
+
+# Step 2: Run analysis from cache with parallel workers
+python run_research.py --all-adversarial --xbrl-dir data/SEC/aqfsn \
+    --workers 4 --xbrl-prefilter
+
+# Step 3: Generate reports from output
+python report_generator.py output/research/<run_dir>/per_cik/
+```
+
+| Option | Effect |
+|---|---|
+| `--warm-cache` | Pre-fetch all filings into disk cache using async HTTP before processing |
+| `--workers N` | Process N CIKs in parallel using multiprocessing (default 1) |
+| `--xbrl-prefilter` | Skip CIKs not present in XBRL SUB data (requires `--xbrl-dir`) |
+
 SECMap uses a three-tier adversarial-nation discovery strategy:
 
 | Tier | Method | Source | False Positive Rate |
@@ -185,13 +207,13 @@ The AFIDA parser cross-references USDA AFIDA entity names against the SEC's comp
 | Metric | Value |
 |--------|-------|
 | Unique Chinese-linked AFIDA entities | 82 |
-| Entities with SEC filing presence | 6 (7.3%) — all false positives on manual review |
+| Entities with SEC filing presence | 6 (7.3%) -- all false positives on manual review |
 | **Entities invisible to federal analysis** | **76-82 (92.7-100%)** |
 | Invisible acreage | 246,019 acres (98.9%) |
 
 The structural cause: **AFIDA records subsidiaries. SEC records parents.** "Murphy Brown LLC" appears in AFIDA. "Smithfield Foods Inc" appears in SEC. They are the same ownership chain. No federal system connects them.
 
-The parser handles AFIDA's varying Excel formats (auto-detects header rows, maps all column name variants) and captures the 2024 Secondary Interest flags for China, Iran, Russia, and North Korea — identifying entities attributed to allied countries but with adversarial-nation secondary interests.
+The parser handles AFIDA's varying Excel formats (auto-detects header rows, maps all column name variants) and captures the 2024 Secondary Interest flags for China, Iran, Russia, and North Korea -- identifying entities attributed to allied countries but with adversarial-nation secondary interests.
 
 ---
 
@@ -271,7 +293,7 @@ Plus metadata fields for deduplication, timestamps, and notes.
 │  │  │ 558K recs  │  │ co-registrant│  │  BeautifulSoup  │  │  │
 │  │  └────────────┘  └──────────────┘  └─────────────────┘  │  │
 │  │  ┌────────────────────────────────────────────────────┐  │  │
-│  │  │  Adversarial XBRL Scan — ISO country code search   │  │  │
+│  │  │  Adversarial XBRL Scan -- ISO country code search   │  │  │
 │  │  │  Zero false positives across 3 country fields      │  │  │
 │  │  └────────────────────────────────────────────────────┘  │  │
 │  └──────────────────────────────────────────────────────────┘  │
@@ -302,6 +324,7 @@ Plus metadata fields for deduplication, timestamps, and notes.
 |--------|-------|---------|
 | **Core Pipeline** | | |
 | `sec_fetch.py` | 277 | SEC EDGAR HTTP client with rate limiting, retry, and disk cache |
+| `sec_fetch_async.py` | 150+ | Async HTTP fetcher (aiohttp) for concurrent SEC requests with shared disk cache |
 | `cik_discovery.py` | 220 | Breadth-first recursive CIK traversal to depth 10 |
 | `parse_filings.py` | 271 | HTML/XBRL stripping, text normalisation, section extraction |
 | `ownership_mapper.py` | 246 | Top-level pipeline orchestrator |
@@ -325,7 +348,7 @@ Plus metadata fields for deduplication, timestamps, and notes.
 | `adversarial_search.py` | 440+ | Country keyword expansion for adversarial-nation SEC universe search |
 | `sec_universe.py` | 174 | SEC filing universe (10,447 companies, 28,183 mutual funds) |
 | **XBRL Integration** | | |
-| `xbrl_sub.py` | 280+ | XBRL SUB table parser — 558K records, 11.4K CIKs, 34 periods (2020q1–2026) |
+| `xbrl_sub.py` | 280+ | XBRL SUB table parser -- 558K records, 11.4K CIKs, 34 periods (2020q1–2026) |
 | `descension.py` | 250+ | Downward ownership traversal via co-registrant CIKs |
 | `exhibit21_parser.py` | 350+ | Exhibit 21 subsidiary listing parser (BeautifulSoup + regex fallback) |
 | `adversarial_xbrl.py` | 300+ | Zero-false-positive adversarial scan using ISO 3166-1 country codes |
@@ -398,7 +421,7 @@ The gap analyser compares SEC ownership chains against state entity registration
 ## Testing
 
 ```bash
-# Run full test suite (253 tests)
+# Run full test suite (258 tests)
 python -m pytest tests/ -v
 
 # Run specific test categories
@@ -410,21 +433,44 @@ python -m pytest tests/test_reproducibility.py -v
 python run_tests.py
 ```
 
-The reproducibility test verifies that identical inputs produce identical outputs — the deterministic guarantee that makes SECMap suitable for academic citation.
+The test suite includes three categories of quality assurance tests that serve distinct purposes:
+
+| Test | Purpose | Academic Relevance |
+|------|---------|-------------------|
+| **Golden Regression** (`test_golden_regression.py`) | Validates that a known synthetic input produces CSV output with correct entity names, relationship types, ownership percentages, accession numbers, and column structure | Proves the tool produces **correct output** for a known case -- citable in methodology sections |
+| **Integration** (`test_integration_end_to_end.py`, `test_integration_sc13.py`) | Validates that pipeline modules are correctly wired -- parsers called, edge builders invoked, CSV files created with expected edge counts | Proves the **pipeline is connected** end-to-end without gaps |
+| **Reproducibility** (`test_reproducibility.py`) | Validates that identical inputs produce byte-for-byte identical CSV output across two independent runs | Proves **deterministic output** -- the guarantee that makes SECMap suitable for academic citation and peer review |
+
+Additional test coverage includes unit tests for all core modules (XBRL SUB parser, descension engine, Exhibit 21 parser, jurisdiction inference, state affiliation detection, role taxonomy, people/institution extraction, SC 13D/G parsing, CSV writer, CIK discovery, and configuration).
 
 ---
 
-## Air-Gapped Operation
+## Air-Gapped Operation & Cache Architecture
 
-SECMap runs entirely offline using its disk cache. After one network-connected run, all SEC data is cached locally:
+SECMap runs entirely offline using its disk cache. After one network-connected run (or a cache warming pass), all SEC data is cached locally:
 
 ```
 cache/
-├── data.sec.gov/submissions/    # Company metadata JSON
-└── www.sec.gov/Archives/edgar/  # Filing documents
+  data.sec.gov/submissions/    # Company metadata JSON
+  www.sec.gov/Archives/edgar/  # Filing documents
 ```
 
 Subsequent runs serve from cache with zero network requests. This enables operation in air-gapped environments and eliminates SEC rate-limit concerns for iterative development.
+
+The `cache_warmer.py` script pre-populates the cache using async HTTP (~50-80 filings/second vs ~6/second synchronous):
+
+```bash
+# Warm cache for all adversarial-nation CIKs
+python cache_warmer.py --all-adversarial --xbrl-dir data/SEC/aqfsn
+
+# Warm cache for specific CIKs
+python cache_warmer.py --cik-list 91388 1123661 313927
+
+# Warm cache for XBRL-identified Chinese entities
+python cache_warmer.py --xbrl-search CN --xbrl-dir data/SEC/aqfsn
+```
+
+The async fetcher and synchronous pipeline share the same cache directory. Once warmed, the analysis pipeline reads from cache with zero network latency, and multiprocessing (`--workers 4`) can process CIKs in parallel without SEC rate-limit contention.
 
 ---
 
@@ -544,8 +590,8 @@ See [CITATION.cff](CITATION.cff) for machine-readable citation metadata.
 
 SECMap is the primary research instrument for a PhD-track programme examining foreign agricultural ownership in the United States:
 
-- **Article 1** (published): Spatial clustering of Chinese-linked holdings near military installations — 3.4× enrichment, 12.7× against nuclear-capable sites
-- **Article 2** (in preparation): Ownership networks and the three-system visibility gap — 92.7% of Chinese-linked AFIDA entities invisible to federal ownership analysis
+- **Article 1** (published): Spatial clustering of Chinese-linked holdings near military installations -- 3.4× enrichment, 12.7× against nuclear-capable sites
+- **Article 2** (in preparation): Ownership networks and the three-system visibility gap -- 92.7% of Chinese-linked AFIDA entities invisible to federal ownership analysis
 - **Article 3** (planned): CFIUS regulatory gap simulation and regression discontinuity design
 
 The companion repository [**afida-spatial-analysis**](https://github.com/rjgreenresearch/afida-spatial-analysis) contains the Monte Carlo permutation testing framework for Article 1.

@@ -6,7 +6,7 @@ ISO 3166-1 country codes from the SEC XBRL SUB table.
 
 Unlike adversarial_search.py (which uses fuzzy name matching against the
 SEC company tickers endpoint), this module uses the three country fields
-in the SUB table — countryba, countryinc, countryma — to identify entities
+in the SUB table -- countryba, countryinc, countryma -- to identify entities
 with zero false positives.
 
 The three-field approach catches intermediary patterns invisible to
@@ -121,7 +121,7 @@ class AdversarialScanResult:
         lines.append("Deterministic identification using ISO 3166-1 country codes from the")
         lines.append("SEC XBRL Financial Statement and Notes Data Sets SUB table.")
         lines.append(f"Three fields scanned: countryba (business address), countryinc (incorporation), countryma (mailing address).")
-        lines.append(f"Zero false positives — matched on structured country codes, not entity names.")
+        lines.append(f"Zero false positives -- matched on structured country codes, not entity names.")
         lines.append("")
 
         # Overview
@@ -179,7 +179,7 @@ class AdversarialScanResult:
             lines.append("## Intermediary Patterns")
             lines.append("")
             lines.append("Entities where an adversarial/conduit code appears in ONE field")
-            lines.append("but a different country (typically US) appears in another — the")
+            lines.append("but a different country (typically US) appears in another -- the")
             lines.append("classic intermediary/layering structure.")
             lines.append("")
             lines.append(f"**{len(self.intermediary_patterns):,} entities** exhibit intermediary patterns.")
@@ -300,7 +300,7 @@ def adversarial_scan(
         if not matched_codes:
             continue
 
-        # Determine tier — adversarial wins over conduit
+        # Determine tier -- adversarial wins over conduit
         tier = "CONDUIT"
         for code in matched_codes:
             if code in ADVERSARIAL_CODES:

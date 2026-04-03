@@ -1,4 +1,4 @@
-# SECMap — System Architecture Document (SAD)
+# SECMap -- System Architecture Document (SAD)
 IEEE 42010‑Style System Architecture Description  
 Version 2.0
 
@@ -18,12 +18,12 @@ This System Architecture Document describes the structure, components, interface
 SECMap ingests SEC filings, extracts structured entities and relationships, classifies them by jurisdiction risk tier and state‑actor affiliation, and produces deterministic CSV artifacts. The architecture supports 10‑layer recursive discovery, multi‑nation risk classification, disk caching, research‑scale batch execution, and state SOS integration.
 
 ### 1.3 Stakeholders
-- Econometrics researchers — reproducible datasets for PhD research  
-- Intelligence analysts — adversarial‑nation ownership chain tracing  
-- SEC/USDA/CFIUS analysts — beneficial ownership enforcement, AFIDA screening  
-- Policy specialists — foreign investment risk assessment  
-- Developers — maintain and extend the system  
-- Operators — run CLI and batch pipelines  
+- Econometrics researchers -- reproducible datasets for PhD research  
+- Intelligence analysts -- adversarial‑nation ownership chain tracing  
+- SEC/USDA/CFIUS analysts -- beneficial ownership enforcement, AFIDA screening  
+- Policy specialists -- foreign investment risk assessment  
+- Developers -- maintain and extend the system  
+- Operators -- run CLI and batch pipelines  
 
 
 ## 2. Architectural Drivers
@@ -42,14 +42,14 @@ SECMap ingests SEC filings, extracts structured entities and relationships, clas
 - State SOS gap analysis  
 
 ### 2.2 Quality Attribute Drivers
-- Determinism — identical input + cache → identical output  
-- Reproducibility — golden‑file regression, hash comparison  
-- Robustness — malformed filings handled gracefully  
-- Testability — 143+ tests (unit, integration, regression, smoke)  
-- Modularity — each function isolated in its own module  
-- Traceability — structured logging, metadata headers, chain analysis summary  
-- Cacheability — zero redundant SEC requests across runs  
-- Resumability — research runs survive interruption  
+- Determinism -- identical input + cache → identical output  
+- Reproducibility -- golden‑file regression, hash comparison  
+- Robustness -- malformed filings handled gracefully  
+- Testability -- 143+ tests (unit, integration, regression, smoke)  
+- Modularity -- each function isolated in its own module  
+- Traceability -- structured logging, metadata headers, chain analysis summary  
+- Cacheability -- zero redundant SEC requests across runs  
+- Resumability -- research runs survive interruption  
 
 ### 2.3 Constraints
 - Python 3.10+  
@@ -63,52 +63,52 @@ SECMap ingests SEC filings, extracts structured entities and relationships, clas
 
 SECMap is a modular pipeline composed of six architectural layers:
 
-1. **Fetch & Cache Layer** — SEC EDGAR HTTP client with disk caching  
-2. **Discovery Layer** — BFS recursive CIK traversal with company metadata  
-3. **Parse & Extract Layer** — Filing parsing, positional person extraction, institution extraction, SC‑13 parsing  
-4. **Classification & Risk Layer** — Jurisdiction inference, state affiliation, role taxonomy  
-5. **Edge Construction & Output Layer** — Typed edges, deduplication, 25‑column CSV, metadata  
-6. **Research & Gap Analysis Layer** — SEC universe, batch runner, state SOS registry, gap analyzer  
+1. **Fetch & Cache Layer** -- SEC EDGAR HTTP client with disk caching  
+2. **Discovery Layer** -- BFS recursive CIK traversal with company metadata  
+3. **Parse & Extract Layer** -- Filing parsing, positional person extraction, institution extraction, SC‑13 parsing  
+4. **Classification & Risk Layer** -- Jurisdiction inference, state affiliation, role taxonomy  
+5. **Edge Construction & Output Layer** -- Typed edges, deduplication, 25‑column CSV, metadata  
+6. **Research & Gap Analysis Layer** -- SEC universe, batch runner, state SOS registry, gap analyzer  
 
 Plus cross‑cutting: Config, Logging, CLI.
 
 
 ## 4. Architectural Views
 
-### 4.1 Logical View — Module Inventory
+### 4.1 Logical View -- Module Inventory
 
 Core Pipeline:
-- sec_fetch.py — HTTP client + disk cache  
-- cik_discovery.py — BFS CIK traversal + company metadata  
-- parse_filings.py — HTML/XBRL stripping, section extraction  
-- people_extractor.py — Positional /s/ and By: extraction  
-- institution_extractor.py — Corporate suffix extraction  
-- sc13_parser.py — SC‑13 cover page parser  
-- relationship_builder.py — Combines extractors, classifies roles  
-- ownership_edges.py — OwnershipEdge dataclass (25 fields), edge builders, deduplication  
-- ownership_mapper.py — Pipeline orchestrator  
-- csv_writer.py — 25‑column pipe‑delimited CSV  
-- metadata.py — Run metadata + chain analysis summary  
+- sec_fetch.py -- HTTP client + disk cache  
+- cik_discovery.py -- BFS CIK traversal + company metadata  
+- parse_filings.py -- HTML/XBRL stripping, section extraction  
+- people_extractor.py -- Positional /s/ and By: extraction  
+- institution_extractor.py -- Corporate suffix extraction  
+- sc13_parser.py -- SC‑13 cover page parser  
+- relationship_builder.py -- Combines extractors, classifies roles  
+- ownership_edges.py -- OwnershipEdge dataclass (25 fields), edge builders, deduplication  
+- ownership_mapper.py -- Pipeline orchestrator  
+- csv_writer.py -- 25‑column pipe‑delimited CSV  
+- metadata.py -- Run metadata + chain analysis summary  
 
 Classification:
-- jurisdiction_inference.py — 5 risk tiers, 135+ countries, city tokens  
-- state_affiliation.py — 10 categories, 6 adversarial nations, SWF, shell/proxy, PEP  
-- role_taxonomy.py — 50+ roles, semantic flags, Deputy variants, word‑boundary regex  
-- entity_classification.py — Entity type heuristics  
-- entity_extraction.py — Name cleaning, org detection  
+- jurisdiction_inference.py -- 5 risk tiers, 135+ countries, city tokens  
+- state_affiliation.py -- 10 categories, 6 adversarial nations, SWF, shell/proxy, PEP  
+- role_taxonomy.py -- 50+ roles, semantic flags, Deputy variants, word‑boundary regex  
+- entity_classification.py -- Entity type heuristics  
+- entity_extraction.py -- Name cleaning, org detection  
 
 SEC Universe:
-- sec_universe.py — 3 SEC ticker endpoints, exchange filtering  
+- sec_universe.py -- 3 SEC ticker endpoints, exchange filtering  
 
 State SOS:
-- state_sos/state_registry.py — 51 jurisdictions, access tier catalog  
-- state_sos/gap_analyzer.py — Federal/state visibility gap, risk scoring, persistence  
-- state_sos/texas_sos.py — PDF parser for Texas SOS documents  
+- state_sos/state_registry.py -- 51 jurisdictions, access tier catalog  
+- state_sos/gap_analyzer.py -- Federal/state visibility gap, risk scoring, persistence  
+- state_sos/texas_sos.py -- PDF parser for Texas SOS documents  
 
 Cross‑cutting:
-- config.py — 3‑layer config, validation  
-- logging_config.py — Structured logging  
-- cli.py, main.py — CLI entrypoints  
+- config.py -- 3‑layer config, validation  
+- logging_config.py -- Structured logging  
+- cli.py, main.py -- CLI entrypoints  
 
 Key Data Structures:
 - Entity (raw_name, cleaned_name, entity_type, notes)  
@@ -120,7 +120,7 @@ Key Data Structures:
 - ChainAnalysisSummary (adversarial/conduit/opacity/state‑affiliated/obscuring counts)  
 
 
-### 4.2 Process View — Pipeline Execution Flow
+### 4.2 Process View -- Pipeline Execution Flow
 
 ```
 CLI / Batch Runner
@@ -210,3 +210,46 @@ write_edges_to_csv() → 25‑column pipe‑delimited CSV + metadata header
 - Risk tier country lists  
 - State SOS access catalog  
 - Example 25‑column CSV  
+
+
+---
+
+## Performance & Scaling Architecture
+
+### Async HTTP Fetcher (`sec_fetch_async.py`)
+
+Uses `aiohttp` with `asyncio.Semaphore(8)` for concurrent SEC EDGAR requests while maintaining fair-access compliance (~10 requests/second). Shares the same disk cache as the synchronous `sec_fetch.py` -- cached data is interchangeable between sync and async code paths.
+
+### Cache Warmer (`cache_warmer.py`)
+
+Standalone script that pre-populates the disk cache using async HTTP before a production run. Two-phase approach:
+
+1. **Phase 1**: Fetch all submissions JSON concurrently for all target CIKs
+2. **Phase 2**: Collect filing URLs from submissions, fetch all filing documents concurrently in batches of 200
+
+Expected throughput: ~50-80 filings/second (vs ~6/second synchronous).
+
+### Multiprocessing (`--workers N`)
+
+`ProcessPoolExecutor` processes independent CIKs in parallel. Each worker runs the full pipeline (fetch from cache, parse, extract, classify, write CSV). Recommended: 3-4 workers after cache warming. Uses `as_completed` for real-time progress reporting.
+
+### XBRL Pre-filter (`--xbrl-prefilter`)
+
+Eliminates wasted processing by skipping CIKs not present in the XBRL SUB data. Loads the XBRL index once, filters the target list, then discards the index before processing begins.
+
+### Memory Management
+
+- Per-CIK logger replaced with shared logger to prevent logger object accumulation
+- `secmap_result` and `metadata` explicitly deleted after CSV write
+- `rows` and `summary` from risk flagging freed immediately
+- Parsed `sections` dict freed after each filing
+- Results list stores compact summaries only (cik, name, status, edges, rating)
+- `gc.collect()` every 10 CIKs to force garbage collection
+
+### Recommended Production Workflow
+
+```
+Step 1: python cache_warmer.py --all-adversarial --xbrl-dir data/SEC/aqfsn
+Step 2: python run_research.py --all-adversarial --xbrl-dir data/SEC/aqfsn --workers 4 --xbrl-prefilter
+Step 3: python report_generator.py output/research/<run_dir>/per_cik/
+```

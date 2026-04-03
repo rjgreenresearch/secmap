@@ -1,4 +1,4 @@
-# SECMap — Market Analysis
+# SECMap -- Market Analysis
 Version 2.0
 
 > **Author:** Robert J. Green
@@ -8,7 +8,7 @@ Version 2.0
 > **SSRN:** [https://ssrn.com/author=10825096](https://ssrn.com/author=10825096)
 
 
-## 1. Your assumed users are absolutely real — but they're only the inner circle
+## 1. Your assumed users are absolutely real -- but they're only the inner circle
 
 These groups will use SECMap immediately because it solves their daily pain points:
 
@@ -23,7 +23,7 @@ SECMap is exactly the kind of instrument they dream of.
 
 SEC, USDA, CFIUS
 - SEC: beneficial ownership enforcement, shell company detection  
-- USDA: AFIDA foreign ownership screening — SECMap traces to 10 layers vs. AFIDA's 2–3  
+- USDA: AFIDA foreign ownership screening -- SECMap traces to 10 layers vs. AFIDA's 2–3  
 - CFIUS: cross‑border control risk, adversarial‑nation ownership detection  
 - All three: entity resolution + ownership chain tracing + risk‑tier classification  
 
@@ -39,7 +39,7 @@ Intelligence agencies
 They already do this manually or with brittle tools.
 
 
-## 2. But the real market is much larger — and underserved
+## 2. But the real market is much larger -- and underserved
 
 The commercial market for ownership‑mapping and governance‑risk analytics is enormous and growing.
 
@@ -74,7 +74,7 @@ Think:
 - OCCRP  
 - Financial Times investigative teams  
 
-They constantly map ownership networks — manually. SECMap automates the chain tracing they spend months doing by hand.
+They constantly map ownership networks -- manually. SECMap automates the chain tracing they spend months doing by hand.
 
 ### D. State‑level regulators
 State AGs, state securities regulators, and state‑level economic development offices all need:
@@ -144,7 +144,7 @@ Because the problem is deceptively hard:
 
 You solved all of these.
 
-That's why this is patentable — and why the v2.0 patent claims are significantly stronger than v1.0.
+That's why this is patentable -- and why the v2.0 patent claims are significantly stronger than v1.0.
 
 
 ## 4. The real value proposition (the thing no one else has)
@@ -157,7 +157,7 @@ This is the difference between seeing "Syngenta AG" and seeing "SASAC (PRC State
 Every entity in every chain is classified as ADVERSARIAL, CONDUIT, OPACITY, MONITORED, or STANDARD. No other system does this.
 
 ### C. Multi‑nation state‑actor affiliation
-PRC SOEs, MCF entities, UFWD organizations, Russian state corps, IRGC affiliates, DPRK front companies — all detected in a single pass. No other system covers this breadth.
+PRC SOEs, MCF entities, UFWD organizations, Russian state corps, IRGC affiliates, DPRK front companies -- all detected in a single pass. No other system covers this breadth.
 
 ### D. Positional person extraction
 Zero false positives. Extracts from /s/ signature blocks only, not from the entire filing text. This is a novel technical contribution.
@@ -172,10 +172,10 @@ Identical input → identical output. This makes SECMap a scientific instrument,
 Scan all 3,273 NYSE companies, all 2,575 OTC companies, or all 4,254 Nasdaq companies in a single resumable batch run. No other tool can do this.
 
 ### H. Artifact‑grade CSV output
-25 columns with jurisdiction, risk tier, state affiliation, role flags, chain depth, company name. Rich enough for any downstream consumer — visualization, econometrics, graph analytics, regulatory reporting.
+25 columns with jurisdiction, risk tier, state affiliation, role flags, chain depth, company name. Rich enough for any downstream consumer -- visualization, econometrics, graph analytics, regulatory reporting.
 
 
-## 5. The AFIDA/State SOS gap — the killer use case
+## 5. The AFIDA/State SOS gap -- the killer use case
 
 This is the use case that makes SECMap unique and immediately relevant to Congress, USDA, and state legislatures:
 
@@ -203,9 +203,9 @@ This is not theoretical. The Brazos Highland case proves the gap exists. SECMap 
 
 ## 6. So what is the real market?
 
-> SECMap is not a commercial product — it is a platform capability that multiple industries desperately need but have never built.
+> SECMap is not a commercial product -- it is a platform capability that multiple industries desperately need but have never built.
 
-The v2.0 additions — risk tiers, state‑actor affiliation, state SOS gap analysis, research‑scale execution — transform it from a research tool into a national security instrument.
+The v2.0 additions -- risk tiers, state‑actor affiliation, state SOS gap analysis, research‑scale execution -- transform it from a research tool into a national security instrument.
 
 If you wanted to commercialize it, you could.  
 If you wanted to open‑source it, it would become a foundational research tool.  

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-afida_parser.py — Fixed for 2024 AFIDA Excel format
+afida_parser.py -- Fixed for 2024 AFIDA Excel format
 
 Parses USDA AFIDA detailed holdings data and matches entities against
 SEC EDGAR CIK database. Identifies the visibility gap between entities
@@ -43,7 +43,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Column name aliases — covers all known AFIDA format variants
+# Column name aliases -- covers all known AFIDA format variants
 # ---------------------------------------------------------------------------
 
 COLUMN_ALIASES = {
@@ -113,7 +113,7 @@ COLUMN_ALIASES = {
     ],
 }
 
-# Header detection keywords — if a row contains 3+ of these, it's the header
+# Header detection keywords -- if a row contains 3+ of these, it's the header
 HEADER_SIGNATURES = {"state", "county", "country", "acres", "owner", "fips"}
 
 # ---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ CHINA_VARIANTS = {
     "p.r.c.", "chinese",
 }
 
-# Note: Hong Kong excluded from default China filter — it's a separate AFIDA
+# Note: Hong Kong excluded from default China filter -- it's a separate AFIDA
 # country attribution. Use --include-hk to add it.
 HONG_KONG_VARIANTS = {"hong kong", "hk", "macau", "macao"}
 
@@ -232,7 +232,7 @@ def match_entity_to_sec(entity_name: str, sec_lookup: Dict[str, dict],
 
 
 # ---------------------------------------------------------------------------
-# AFIDA loading — with auto header detection
+# AFIDA loading -- with auto header detection
 # ---------------------------------------------------------------------------
 
 def _detect_header_row(ws, max_scan: int = 10) -> int:
@@ -351,7 +351,7 @@ def run(
     else:
         filter_set = ADVERSARIAL_COUNTRIES
 
-    # 4. Filter rows — by country field OR secondary interest flags
+    # 4. Filter rows -- by country field OR secondary interest flags
     filtered = []
     secondary_col = col_map.get("secondary_china")
 
@@ -516,7 +516,7 @@ def run(
 
     summary_lines = [
         "=" * 70,
-        "AFIDA PARSER — COVERAGE ANALYSIS",
+        "AFIDA PARSER -- COVERAGE ANALYSIS",
         "=" * 70,
         f"Source file:          {os.path.basename(afida_path)}",
         f"Generated:           {timestamp}",
@@ -532,7 +532,7 @@ def run(
         f"Unique counties:     {len(set().union(*(e['fips_codes'] for e in entities.values() if isinstance(e['fips_codes'], set) or True)))}",
         "",
         "-" * 70,
-        "SEC COVERAGE GAP — THE ARTICLE 2 FINDING",
+        "SEC COVERAGE GAP -- THE ARTICLE 2 FINDING",
         "-" * 70,
         f"SEC-matched entities:   {matched_count:>4} ({coverage_pct:.1f}%)",
         f"SEC-matched acreage:    {matched_acres:>12,.1f} acres",
@@ -555,7 +555,7 @@ def run(
 
     summary_lines.append("")
     summary_lines.append("-" * 70)
-    summary_lines.append("TOP UNMATCHED ENTITIES — STATE SOS TARGETS")
+    summary_lines.append("TOP UNMATCHED ENTITIES -- STATE SOS TARGETS")
     summary_lines.append("-" * 70)
     for u in sorted(unmatched, key=lambda x: -x["total_acres"])[:30]:
         flags = []
@@ -601,7 +601,7 @@ def run(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="AFIDA Parser — Cross-reference AFIDA holdings with SEC EDGAR",
+        description="AFIDA Parser -- Cross-reference AFIDA holdings with SEC EDGAR",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

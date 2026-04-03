@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Ownership Network Visualizer — v2
+Ownership Network Visualizer -- v2
 Layered, paged, typed, with legend and methods footer.
 
 - Reads clean CSV from ownership_mapper_v4.2 (with metadata header)
@@ -136,7 +136,7 @@ def render_graphviz(G, meta, cik, depth, fmt="pdf"):
 
     run_id = meta.get("run_id","unknown")
     ts = meta.get("timestamp","")
-    label = f"Ownership Network — {cik}\\nRun ID: {run_id} | {ts}\\nDepth: {depth}"
+    label = f"Ownership Network -- {cik}\\nRun ID: {run_id} | {ts}\\nDepth: {depth}"
 
     dot = graphviz.Digraph(
         name=f"OwnershipNetwork_{cik}",
@@ -299,7 +299,7 @@ def render_pyvis(G, meta, cik, suffix, root=None, depth=None):
     # header + methods footer
     depth_str = f"{depth}" if depth is not None else "full"
     header = f"""
-    <h2>Ownership Network — {cik} ({suffix})</h2>
+    <h2>Ownership Network -- {cik} ({suffix})</h2>
     <p>Run ID: {run_id} | {ts} | Root CIK: {root_cik} | Depth: {depth_str}</p>
     <p>Node colors: Companies (blue), People (purple), Countries (green), Other (gray).</p>
     """

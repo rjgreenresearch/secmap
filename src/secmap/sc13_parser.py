@@ -44,7 +44,7 @@ class BeneficialOwnershipEntry:
 # Cover page block extraction
 # ---------------------------------------------------------------------------
 
-# Find each "NAME OF REPORTING PERSON" block — the name is on the
+# Find each "NAME OF REPORTING PERSON" block -- the name is on the
 # next non-empty, non-label line (may be separated by IRS ID line, blanks)
 _COVER_PAGE_RE = re.compile(
     r"NAME\s+OF\s+REPORTING\s+PERSON[S]?"
@@ -176,7 +176,7 @@ def parse_sc13_beneficial_ownership(text: str) -> List[BeneficialOwnershipEntry]
                     seen_names.add(name)
                     names.append(name)
 
-        # Extract percent values and class titles (global — may not align 1:1)
+        # Extract percent values and class titles (global -- may not align 1:1)
         percents = [_safe_float(m) for m in _PERCENT_RE.findall(text)]
         class_titles = [c.strip() for c in _CLASS_TITLE_RE.findall(text) if c.strip()]
 
@@ -189,7 +189,7 @@ def parse_sc13_beneficial_ownership(text: str) -> List[BeneficialOwnershipEntry]
             len(names), len(percents), len(class_titles), issuer_name,
         )
 
-        # Build entries — each unique reporting person gets one entry
+        # Build entries -- each unique reporting person gets one entry
         for i, name in enumerate(names):
             pct = percents[i] if i < len(percents) else None
             cls = class_titles[0] if class_titles else None  # class title is usually the same for all

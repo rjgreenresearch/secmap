@@ -1,5 +1,5 @@
-# SECMap — Concept of Operations (CONOPS)
-Version 2.0 — DoD‑Style Operational Document
+# SECMap -- Concept of Operations (CONOPS)
+Version 2.0 -- DoD‑Style Operational Document
 
 > **Author:** Robert J. Green
 > **Web:** [www.rjgreenresearch.org](https://www.rjgreenresearch.org)
@@ -10,7 +10,7 @@ Version 2.0 — DoD‑Style Operational Document
 
 ## 1. Purpose
 
-This CONOPS describes the operational use, mission context, and user interactions for SECMap, a deterministic system for tracing beneficial ownership chains through SEC filings to their ultimate terminus — including chains that route through adversarial nations, conduit jurisdictions, and opacity havens — with extensions for state‑level entity gap analysis.
+This CONOPS describes the operational use, mission context, and user interactions for SECMap, a deterministic system for tracing beneficial ownership chains through SEC filings to their ultimate terminus -- including chains that route through adversarial nations, conduit jurisdictions, and opacity havens -- with extensions for state‑level entity gap analysis.
 
 
 ## 2. System Overview
@@ -129,7 +129,7 @@ Scenario 7: Air‑Gapped Operation
 SECMap runs entirely offline using the disk cache populated from a previous network‑connected run. All SEC data is served from ./cache/ with zero network requests.
 
 Scenario 8: Risk Triage
-An analyst runs a production batch against 100 CIKs. The system produces risk-prefixed CSV files (`CRITICAL_cik_*.csv`, `LOW_cik_*.csv`) and a `TRIAGE_MANIFEST.md` sorted by risk score. The analyst opens the manifest, identifies 12 CRITICAL-rated entities, and generates detailed reports and network visualizations for only those 12 — ignoring the 88 LOW/MODERATE files.
+An analyst runs a production batch against 100 CIKs. The system produces risk-prefixed CSV files (`CRITICAL_cik_*.csv`, `LOW_cik_*.csv`) and a `TRIAGE_MANIFEST.md` sorted by risk score. The analyst opens the manifest, identifies 12 CRITICAL-rated entities, and generates detailed reports and network visualizations for only those 12 -- ignoring the 88 LOW/MODERATE files.
 
 Scenario 9: Network Visualization
 An analyst generates an ownership chain diagram:
@@ -168,3 +168,25 @@ System produces a hierarchical graph showing companies, persons, countries, and 
 - Resumable research runs  
 - Apache 2.0 license  
 - CITATION.cff for academic citation  
+
+
+---
+
+## Operational Scenario: High-Performance Production Run
+
+**Actors:** Research analyst, SECMap system
+
+**Preconditions:** XBRL AQFSN data downloaded, SEC EDGAR accessible
+
+**Flow:**
+
+1. Analyst runs `cache_warmer.py --all-adversarial --xbrl-dir data/SEC/aqfsn` to pre-fetch all filings (~30 minutes for 500 CIKs)
+2. Cache warmer uses async HTTP (8 concurrent connections) to populate disk cache at ~50-80 filings/second
+3. Analyst runs `run_research.py --all-adversarial --xbrl-dir data/SEC/aqfsn --workers 4 --xbrl-prefilter`
+4. XBRL pre-filter removes CIKs not in XBRL data, reducing target list
+5. Four parallel worker processes each pull filings from disk cache (zero network latency)
+6. Each worker runs the full pipeline: parse, extract, classify, write CSV, risk-flag
+7. Progress is logged in real-time with CIKs/hour rate and ETA
+8. Run is resumable -- if interrupted, `--resume <run_dir>` skips completed CIKs
+
+**Expected performance:** ~20-30 CIKs/hour with 4 workers from warm cache (vs ~6/hour single-process with network fetching).

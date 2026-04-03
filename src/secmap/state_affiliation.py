@@ -42,7 +42,7 @@ class StateAffiliation:
 
 
 # ===================================================================
-# PRC — People's Republic of China
+# PRC -- People's Republic of China
 # ===================================================================
 
 _PRC_SOE_KEYWORDS = [
@@ -160,7 +160,7 @@ _IRAN_STATE_KEYWORDS = [
 ]
 
 # ===================================================================
-# DPRK — North Korea
+# DPRK -- North Korea
 # ===================================================================
 
 _DPRK_KEYWORDS = [
@@ -215,7 +215,7 @@ _CUBA_STATE_KEYWORDS = [
 ]
 
 # ===================================================================
-# Sovereign Wealth Funds (global — not inherently adversarial,
+# Sovereign Wealth Funds (global -- not inherently adversarial,
 # but critical for UBO chain terminus identification)
 # ===================================================================
 
@@ -240,7 +240,7 @@ _SWF_KEYWORDS = [
 ]
 
 # ===================================================================
-# PEP — Politically Exposed Persons (global)
+# PEP -- Politically Exposed Persons (global)
 # ===================================================================
 
 _PEP_KEYWORDS = [

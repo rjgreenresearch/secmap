@@ -44,7 +44,7 @@ def test_exception_handling():
 
 
 # ---------------------------------------------------------------------------
-# Country inference — parametrized across all tiers
+# Country inference -- parametrized across all tiers
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("entity_name,expected_country", [
@@ -68,7 +68,7 @@ def test_country_inference(entity_name, expected_country):
 
 
 # ---------------------------------------------------------------------------
-# Risk tier API — parametrized
+# Risk tier API -- parametrized
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("country,expected_tier", [

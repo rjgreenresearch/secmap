@@ -1,7 +1,7 @@
 """
 people_extractor.py
 
-Extracts person entities from SEC filings using POSITIONAL extraction —
+Extracts person entities from SEC filings using POSITIONAL extraction --
 names are only pulled from specific structural locations where person
 names are expected to appear:
 
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Organization suffixes — reject if present
+# Organization suffixes -- reject if present
 # ---------------------------------------------------------------------------
 
 _ORG_SUFFIXES = {
@@ -97,7 +97,7 @@ _TITLE_STOPS = [
 ]
 _TITLE_STOP_PATTERN = "|".join(re.escape(t) for t in _TITLE_STOPS)
 
-# /s/ Name — name ends at a title keyword, date, or newline
+# /s/ Name -- name ends at a title keyword, date, or newline
 _SIG_RE = re.compile(
     r"/s/\s*([A-Z][A-Za-z.\-' ]{2,50}?)(?=" + _TITLE_STOP_PATTERN + r"|\n|\r|\(|$)",
 )

@@ -1,4 +1,4 @@
-# SECMap — Ownership Chain Summary Report Generator
+# SECMap -- Ownership Chain Summary Report Generator
 
 > **Author:** Robert J. Green
 > **Web:** [www.rjgreenresearch.org](https://www.rjgreenresearch.org)
@@ -132,7 +132,7 @@ python report_generator.py <input> [--out <directory>]
 
 | Argument | Required | Default | Description |
 |---|---|---|---|
-| `input` | Yes | — | Path to a CSV file or directory of CSV files |
+| `input` | Yes | -- | Path to a CSV file or directory of CSV files |
 | `--out` | No | Same as input (or `reports/` subdirectory for directories) | Output directory for generated reports |
 
 ---
@@ -207,26 +207,26 @@ Table of entities matching state-actor affiliation keywords, with category, subc
 
 ### 5.9 Beneficial Owners
 
-ALL SC 13D/G reporting persons — no truncation. Table includes jurisdiction, risk tier, state affiliation, and state affiliation subcategory columns to cross-reference beneficial owners against adversarial-nation indicators.
+ALL SC 13D/G reporting persons -- no truncation. Table includes jurisdiction, risk tier, state affiliation, and state affiliation subcategory columns to cross-reference beneficial owners against adversarial-nation indicators.
 
 ### 5.10 Key Personnel
 
 Organized into four sub-tables:
 
-- **Executives** — CEO, CFO, COO, VP, and other C-suite/senior roles
-- **Board Members** — Directors, Chairman, Lead Independent Director
-- **Ownership Roles** — Beneficial owners, controlling persons, significant shareholders
-- **Other Signatories** — Filing signatories without a classified role
+- **Executives** -- CEO, CFO, COO, VP, and other C-suite/senior roles
+- **Board Members** -- Directors, Chairman, Lead Independent Director
+- **Ownership Roles** -- Beneficial owners, controlling persons, significant shareholders
+- **Other Signatories** -- Filing signatories without a classified role
 
 Each table includes jurisdiction, risk tier, and state affiliation columns.
 
 ### 5.11 Institutional Relationships
 
-ALL institutional entities — no truncation. Table includes jurisdiction, risk tier, and state affiliation to identify adversarial-linked institutions.
+ALL institutional entities -- no truncation. Table includes jurisdiction, risk tier, and state affiliation to identify adversarial-linked institutions.
 
 ### 5.12 Obscuring Roles
 
-Entities flagged with the `role_is_obscuring` flag — nominees, proxies, intermediaries, registered agents. These indicate potential ownership layering or opacity in the chain.
+Entities flagged with the `role_is_obscuring` flag -- nominees, proxies, intermediaries, registered agents. These indicate potential ownership layering or opacity in the chain.
 
 ### 5.13 Country Associations
 

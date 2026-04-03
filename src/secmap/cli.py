@@ -31,7 +31,7 @@ def configure_logging(level: str):
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="secmap",
-        description="SECMap — Ownership & Governance Mapping Tool",
+        description="SECMap -- Ownership & Governance Mapping Tool",
     )
 
     sub = parser.add_subparsers(dest="command", required=True)

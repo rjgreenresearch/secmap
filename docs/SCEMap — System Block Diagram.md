@@ -1,5 +1,5 @@
-# SECMap — System Block Diagram
-Version 2.0 — Patent‑Grade
+# SECMap -- System Block Diagram
+Version 2.0 -- Patent‑Grade
 
 > **Author:** Robert J. Green
 > **Web:** [www.rjgreenresearch.org](https://www.rjgreenresearch.org)

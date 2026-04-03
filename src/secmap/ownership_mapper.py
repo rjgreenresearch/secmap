@@ -143,7 +143,7 @@ def _build_incorporated_in_edges(company_info: Dict, discovery) -> List[Ownershi
             relationship_detail=info.get("sicDescription", ""),
             filing=_MetaFiling(),
             method="company_metadata",
-            notes=f"SIC: {info.get('sic', '')} — {info.get('sicDescription', '')}",
+            notes=f"SIC: {info.get('sic', '')} -- {info.get('sicDescription', '')}",
             target_jurisdiction=state_full,
             target_risk_tier=get_risk_tier(state_full),
         )
@@ -166,7 +166,7 @@ def run_secmap(
     logger.info("Starting SECMap orchestrator for root CIK %s", root_cik)
 
     # ===================================================================
-    # PHASE 1: Ascension — BFS upward through ownership chains
+    # PHASE 1: Ascension -- BFS upward through ownership chains
     # ===================================================================
     logger.info("=" * 60)
     logger.info("PHASE 1: Ascension (upward ownership chain traversal)")
@@ -277,14 +277,14 @@ def run_secmap(
         # Free the parsed sections to release filing content memory
         del sections
 
-    # Release filing content — the DiscoveredFiling objects hold multi-MB
+    # Release filing content -- the DiscoveredFiling objects hold multi-MB
     # HTML strings that are no longer needed after edge extraction.
     # DiscoveryResult is frozen, so we can't delete .filings directly,
     # but we can let the local reference go out of scope after this point.
     filings_processed_count = len(discovery.filings)
 
     # ===================================================================
-    # PHASE 2: XBRL Enrichment — descension + institution cross-reference
+    # PHASE 2: XBRL Enrichment -- descension + institution cross-reference
     # ===================================================================
     xbrl_enriched = False
     desc_cik_count = 0

@@ -126,7 +126,7 @@ _CANONICAL_ROLES = {
     "Internal Auditor": ["internal auditor", "chief audit executive", "deputy auditor"],
 
     # ===================================================================
-    # Deputy roles — common in foreign (esp. PRC) SC-13 filings
+    # Deputy roles -- common in foreign (esp. PRC) SC-13 filings
     # Catch-all for deputy titles not covered above
     # ===================================================================
     "Deputy Director": [
@@ -185,7 +185,7 @@ _CANONICAL_ROLES = {
     "Depositary": ["depositary", "depository"],
 
     # ===================================================================
-    # Ownership — critical for UBO chain tracing
+    # Ownership -- critical for UBO chain tracing
     # ===================================================================
     "Beneficial Owner": ["beneficial owner", "ultimate beneficial owner", "ubo"],
     "Owner": ["owner"],
@@ -203,7 +203,7 @@ _CANONICAL_ROLES = {
     "Minority Owner": ["minority owner", "minority shareholder", "minority interest"],
 
     # ===================================================================
-    # Obscuring / layering roles — red flags in ownership chains
+    # Obscuring / layering roles -- red flags in ownership chains
     # ===================================================================
     "Nominee": [
         "nominee", "nominee shareholder", "nominee director",
@@ -235,7 +235,7 @@ _CANONICAL_ROLES = {
 }
 
 # ---------------------------------------------------------------------------
-# Role metadata — which roles belong to which categories
+# Role metadata -- which roles belong to which categories
 # ---------------------------------------------------------------------------
 
 _EXECUTIVE_ROLES = {

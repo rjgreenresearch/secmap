@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-report_generator.py — v2.0
+report_generator.py -- v2.0
 
 Generates research-grade ownership chain summary reports from SECMap
 CSV output. Produces per-CIK markdown reports with:
@@ -647,7 +647,7 @@ def generate_executive_summary(summary: Dict, meta: Dict, source_file: str, rows
         lines.append(f"**{chain_len}-tier chain** ({anc} owners above, {desc} subsidiaries below)")
         lines.append("")
         lines.append("```")
-        # Truncate tree for executive summary — show max 15 lines
+        # Truncate tree for executive summary -- show max 15 lines
         tree_lines = tree["tree_text"].split("\n")
         if len(tree_lines) > 15:
             lines.extend(tree_lines[:15])
@@ -695,7 +695,7 @@ def generate_executive_summary(summary: Dict, meta: Dict, source_file: str, rows
                 lines.append(f"- **{sa['category']}{sub}:** {sa['entity']}")
             lines.append("")
 
-    # Key personnel (compact — just names and roles)
+    # Key personnel (compact -- just names and roles)
     if summary["persons"]:
         lines.append("---")
         lines.append("")
@@ -806,7 +806,7 @@ def generate_report(summary: Dict, meta: Dict, source_file: str, rows_for_title:
             lines.append(f"> This combination represents a potential critical supply chain vulnerability.")
             lines.append("")
 
-    # AFIDA depth comparison — use the ownership tree chain length
+    # AFIDA depth comparison -- use the ownership tree chain length
     tree = summary.get("ownership_tree", {})
     tree_chain_length = tree.get("chain_length", 0)
     all_jurisdictions = set()
@@ -844,7 +844,7 @@ def generate_report(summary: Dict, meta: Dict, source_file: str, rows_for_title:
         if depth_gap == 0 and has_adversarial:
             depth_gap = effective_depth - 1  # at minimum, the adversarial hop is invisible
         lines.append(f"> **AFIDA DISCLOSURE GAP:** This ownership chain traverses **{len(all_jurisdictions)} jurisdictions** ")
-        lines.append(f"> with **{len(summary['beneficial_owners'])} beneficial owner entities**, representing an effective depth of **{effective_depth} layers** — ")
+        lines.append(f"> with **{len(summary['beneficial_owners'])} beneficial owner entities**, representing an effective depth of **{effective_depth} layers** -- ")
         lines.append(f"> **{depth_gap} layers beyond** AFIDA's typical self-reporting depth.")
         lines.append("")
 

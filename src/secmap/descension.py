@@ -1,7 +1,7 @@
 """
 descension.py
 
-Downward ownership chain traversal — given a parent CIK, discover all
+Downward ownership chain traversal -- given a parent CIK, discover all
 entities that parent OWNS or CONTROLS.
 
 SECMap's existing pipeline ascends: CIK -> who owns it -> who owns THEM.
@@ -9,7 +9,7 @@ The descension engine does the opposite: CIK -> what it owns -> what THOSE own.
 
 Data source (this module): XBRL co-registrants (aciks field).
 When a parent files a consolidated financial statement, the aciks field lists
-the CIKs of all co-registrants included in the consolidation — these are
+the CIKs of all co-registrants included in the consolidation -- these are
 direct subsidiaries or controlled entities.
 
 Future data sources (not yet implemented):
@@ -81,7 +81,7 @@ class _XBRLFiling:
 # ---------------------------------------------------------------------------
 
 def _best_record(records: List[SubRecord]) -> Optional[SubRecord]:
-    """Pick the most informative SubRecord for a CIK — prefer 10-K/20-F, then most recent."""
+    """Pick the most informative SubRecord for a CIK -- prefer 10-K/20-F, then most recent."""
     if not records:
         return None
     preferred = [r for r in records if r.form in ("10-K", "20-F", "10-K/A")]

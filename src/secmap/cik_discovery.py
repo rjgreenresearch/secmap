@@ -32,6 +32,45 @@ _CIK_URL = re.compile(r"/CIK0*([0-9]{5,10})\.json", re.IGNORECASE)
 # Accession number prefix encodes the filer CIK: 0000921895-13-001960 -> 921895
 _ACCESSION_CIK = re.compile(r"^0*(\d{5,10})-\d{2}-\d{6}$")
 
+# Known filing agent CIKs -- these are entities that file documents on behalf
+# of companies (law firms, financial printers, filing agents). They appear in
+# accession number prefixes but don't have their own company submissions.
+# Fetching their submissions returns 404.
+_FILING_AGENT_CIKS = {
+    "1144204",  # Edgar Online / R.R. Donnelley
+    "950159",   # Donnelley Financial Solutions
+    "1213900",  # EastBridge Financial
+    "1628280",  # Toppan Merrill
+    "1410578",  # SEC filing agent
+    "1341004",  # SEC filing agent
+    "1275287",  # SEC filing agent
+    "1258897",  # SEC filing agent
+    "1145549",  # SEC filing agent
+    "1013762",  # SEC filing agent
+    "1683168",  # SEC filing agent
+    "1406774",  # SEC filing agent
+    "922423",   # SEC filing agent
+    "950170",   # Donnelley Financial
+    "1193125",  # SEC filing agent
+    "1104659",  # SEC filing agent
+    "1140361",  # SEC filing agent
+    "1437749",  # SEC filing agent
+    "1493152",  # SEC filing agent
+    "1477932",  # SEC filing agent
+    "1171843",  # SEC filing agent
+    "1185185",  # SEC filing agent
+    "1554795",  # SEC filing agent
+    "1558370",  # SEC filing agent
+    "1580642",  # SEC filing agent
+    "1829126",  # SEC filing agent
+    "1903596",  # SEC filing agent
+    "1445546",  # SEC filing agent
+    "1214659",  # SEC filing agent
+    "1539497",  # SEC filing agent
+    "1062993",  # SEC filing agent
+    "1079973",  # SEC filing agent
+}
+
 
 # ---------------------------------------------------------------------------
 # Configuration dataclasses
@@ -271,7 +310,7 @@ def walk_cik_universe(
             # CIK's own SC-13 filings about OTHER companies (sideways).
             if config.only_ascend and depth > 0:
                 # Only keep CIKs extracted from SGML headers (filer CIKs)
-                # and accession-based CIKs — these are entities that filed
+                # and accession-based CIKs -- these are entities that filed
                 # ABOUT the current CIK, i.e., they own it.
                 # Drop CIKs found in the text of filings BY the current CIK
                 # about other companies (those go sideways).
@@ -300,10 +339,10 @@ def walk_cik_universe(
                 current_cik,
             )
 
-            # Enqueue next layer
+            # Enqueue next layer (skip known filing agents)
             if depth + 1 <= config.max_depth:
                 for rc in related:
-                    if rc not in visited:
+                    if rc not in visited and rc not in _FILING_AGENT_CIKS:
                         queue.append((rc, depth + 1))
 
     logger.info(

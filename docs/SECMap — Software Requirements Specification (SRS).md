@@ -1,6 +1,6 @@
 
 
-# SECMap — Software Requirements Specification (SRS)
+# SECMap -- Software Requirements Specification (SRS)
 IEEE‑Style Requirements Document  
 Version 2.0
 
@@ -20,17 +20,17 @@ This document defines the functional and non‑functional requirements for SECMa
 SECMap ingests SEC filings, extracts structured entities and relationships, classifies them by jurisdiction risk tier and state‑actor affiliation, and produces a deterministic, pipe‑delimited CSV suitable for analytics, visualization, and research. The system supports recursive CIK discovery to 10 layers of depth, SC‑13 beneficial ownership parsing, positional person extraction, role classification with semantic flags, disk‑based caching, research‑scale batch execution across the full SEC filing universe, and state Secretary of State integration for federal/state visibility gap analysis.
 
 ### 1.3 Definitions
-- CIK — Central Index Key assigned by the SEC  
-- SC‑13 — Beneficial ownership filings (13D/13G and amendments)  
-- Entity — Person, institution, or company extracted from filings  
-- Edge — Typed relationship between entities with metadata  
-- CSV Artifact — Deterministic output file containing edges  
-- BOI — Beneficial Ownership Information  
-- UBO — Ultimate Beneficial Owner  
-- Risk Tier — Jurisdiction classification (ADVERSARIAL, CONDUIT, OPACITY, MONITORED, STANDARD)  
-- State Affiliation — Classification of entity relationship to state actors (SOE, MCF, UFWD, SWF, PEP, Shell‑Proxy)  
-- AFIDA — Agricultural Foreign Investment Disclosure Act  
-- SOS — Secretary of State (state‑level business entity registry)  
+- CIK -- Central Index Key assigned by the SEC  
+- SC‑13 -- Beneficial ownership filings (13D/13G and amendments)  
+- Entity -- Person, institution, or company extracted from filings  
+- Edge -- Typed relationship between entities with metadata  
+- CSV Artifact -- Deterministic output file containing edges  
+- BOI -- Beneficial Ownership Information  
+- UBO -- Ultimate Beneficial Owner  
+- Risk Tier -- Jurisdiction classification (ADVERSARIAL, CONDUIT, OPACITY, MONITORED, STANDARD)  
+- State Affiliation -- Classification of entity relationship to state actors (SOE, MCF, UFWD, SWF, PEP, Shell‑Proxy)  
+- AFIDA -- Agricultural Foreign Investment Disclosure Act  
+- SOS -- Secretary of State (state‑level business entity registry)  
 
 ### 1.4 References
 - IEEE 830 / 29148 SRS standards  
@@ -295,3 +295,17 @@ The system shall support ingestion from:
 - Example CLI invocations  
 - Risk tier country lists  
 - State SOS access catalog  
+
+
+---
+
+## Performance Requirements (Added v2.0)
+
+| ID | Requirement | Priority |
+|---|---|---|
+| **NFR-10** | The system shall support async HTTP fetching with configurable concurrency (default 8 concurrent connections) for cache warming | HIGH |
+| **NFR-11** | The system shall support multiprocessing with configurable worker count for parallel CIK processing | HIGH |
+| **NFR-12** | The system shall support XBRL-based pre-filtering to skip CIKs not present in structured data | MEDIUM |
+| **NFR-13** | The system shall maintain constant memory usage per CIK regardless of total CIKs processed | HIGH |
+| **NFR-14** | The async and synchronous fetchers shall share a common disk cache for interoperability | HIGH |
+| **NFR-15** | The cache warmer shall achieve >= 50 filings/second throughput on broadband connections | MEDIUM |

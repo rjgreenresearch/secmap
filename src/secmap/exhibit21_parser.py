@@ -96,7 +96,7 @@ _NOISE_PATTERNS = [
     re.compile(r"^\s*[-=_]{5,}\s*$"),  # separator lines
 ]
 
-# Jurisdiction normalization — common abbreviations
+# Jurisdiction normalization -- common abbreviations
 _JURISDICTION_ALIASES = {
     "DE": "Delaware", "VA": "Virginia", "NC": "North Carolina",
     "NY": "New York", "CA": "California", "TX": "Texas",
@@ -291,7 +291,7 @@ def _parse_html_table(html_content: str) -> List[Exhibit21Entry]:
                     ))
 
             elif len(cells) == 1:
-                # Single-cell row — might be a continuation or a combined name+jurisdiction
+                # Single-cell row -- might be a continuation or a combined name+jurisdiction
                 text = cells[0]
                 # Try to split on common delimiters
                 for sep in ["\t", "   ", " - ", "  "]:
@@ -430,7 +430,7 @@ def fetch_exhibit21(
 
     logger.info("Fetched Exhibit 21: %d chars from %s", len(content), exhibit_url)
 
-    # Step 3: Parse — try HTML table first, fall back to plain text
+    # Step 3: Parse -- try HTML table first, fall back to plain text
     entries = _parse_html_table(content)
 
     if not entries:

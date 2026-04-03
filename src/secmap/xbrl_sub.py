@@ -77,7 +77,7 @@ class SubRecord:
     filed: str
     nciks: int
     aciks: str  # space-delimited additional CIKs
-    source_period: str = ""  # e.g. "2025_01" — which monthly dataset
+    source_period: str = ""  # e.g. "2025_01" -- which monthly dataset
 
     @staticmethod
     def from_row(fields: List[str], source_period: str = "") -> Optional[SubRecord]:

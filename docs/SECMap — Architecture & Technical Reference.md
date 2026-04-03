@@ -1,4 +1,4 @@
-# SECMap — Architecture & Technical Reference
+# SECMap -- Architecture & Technical Reference
 
 > **Author:** Robert J. Green
 > **Web:** [www.rjgreenresearch.org](https://www.rjgreenresearch.org)
@@ -16,15 +16,15 @@ PhD Economics (Econometrics) Research Instrument
 
 ## 1. Purpose
 
-SECMap is a research-grade system for tracing beneficial ownership chains through SEC EDGAR filings to their ultimate terminus — including chains that route through multiple layers of corporate structure across adversarial nations, conduit jurisdictions, and opacity havens.
+SECMap is a research-grade system for tracing beneficial ownership chains through SEC EDGAR filings to their ultimate terminus -- including chains that route through multiple layers of corporate structure across adversarial nations, conduit jurisdictions, and opacity havens.
 
 The system was designed to address three specific failures in the current U.S. regulatory framework:
 
-1. **USDA AFIDA depth limitation** — The Agricultural Foreign Investment Disclosure Act relies on self-reporting and typically traces ownership to 2–3 layers. Real-world adversarial ownership structures (e.g., Syngenta AG) use 7+ layers, rendering AFIDA determinations inadequate.
+1. **USDA AFIDA depth limitation** -- The Agricultural Foreign Investment Disclosure Act relies on self-reporting and typically traces ownership to 2–3 layers. Real-world adversarial ownership structures (e.g., Syngenta AG) use 7+ layers, rendering AFIDA determinations inadequate.
 
-2. **SEC EDGAR scope limitation** — SEC filings cover public companies and their direct filers, but ownership chains frequently terminate in private entities (LLCs, LPs, trusts) registered at the state level that are invisible to federal databases.
+2. **SEC EDGAR scope limitation** -- SEC filings cover public companies and their direct filers, but ownership chains frequently terminate in private entities (LLCs, LPs, trusts) registered at the state level that are invisible to federal databases.
 
-3. **Federal/state visibility gap** — State Secretary of State business entity records cover ALL entities including private ones, but these records are siloed across 50 separate systems with no federal aggregation. Adversarial nations exploit this gap by routing ownership through state-registered private vehicles.
+3. **Federal/state visibility gap** -- State Secretary of State business entity records cover ALL entities including private ones, but these records are siloed across 50 separate systems with no federal aggregation. Adversarial nations exploit this gap by routing ownership through state-registered private vehicles.
 
 SECMap traces ownership chains to a depth of 10 layers, classifies every entity and jurisdiction by risk tier, and bridges the federal/state gap through systematic state SOS integration.
 
@@ -238,10 +238,10 @@ After processing, each CSV file is renamed with a risk-rating prefix based on a 
 
 ```
 per_cik/
-├── CRITICAL_cik_91388.csv      # Smithfield Foods — PRC ownership, agriculture
-├── CRITICAL_cik_1123658.csv    # Sinopec — PRC SOE, petrochemicals
-├── MODERATE_cik_1350487.csv    # WisdomTree — no adversarial exposure
-└── LOW_cik_898745.csv          # Principal Funds — unremarkable
+├── CRITICAL_cik_91388.csv      # Smithfield Foods -- PRC ownership, agriculture
+├── CRITICAL_cik_1123658.csv    # Sinopec -- PRC SOE, petrochemicals
+├── MODERATE_cik_1350487.csv    # WisdomTree -- no adversarial exposure
+└── LOW_cik_898745.csv          # Principal Funds -- unremarkable
 ```
 
 A `TRIAGE_MANIFEST.md` is generated with a priority-sorted table of all CIKs by risk score, enabling analysts to focus on CRITICAL files first and skip LOW/MODERATE noise.
@@ -252,7 +252,7 @@ A `TRIAGE_MANIFEST.md` is generated with a priority-sorted table of all CIKs by 
 # All NYSE-listed companies (3,273)
 python run_research.py --exchange NYSE
 
-# All OTC companies (2,575 — highest opacity risk)
+# All OTC companies (2,575 -- highest opacity risk)
 python run_research.py --exchange OTC
 
 # China-related companies
@@ -309,11 +309,11 @@ SASAC (PRC State Council)
                            └── [state-registered subsidiaries]
 ```
 
-...is only partially visible through SEC filings. The terminal nodes — state-registered LLCs, LPs, and trusts — are invisible to federal databases.
+...is only partially visible through SEC filings. The terminal nodes -- state-registered LLCs, LPs, and trusts -- are invisible to federal databases.
 
 ### 7.2 The Brazos Highland Case
 
-Brazos Highland Properties LP, registered in Texas, was traced through Texas SOS records to Guangxin Sun — a former PLA officer who became the single largest Chinese landowner in the United States. This entity was:
+Brazos Highland Properties LP, registered in Texas, was traced through Texas SOS records to Guangxin Sun -- a former PLA officer who became the single largest Chinese landowner in the United States. This entity was:
 
 - **Not in SEC EDGAR** (private LP, no SEC filing obligation)
 - **Not in USDA AFIDA** (AFIDA relies on self-reporting)
@@ -375,9 +375,9 @@ First run fetches from SEC. Subsequent runs use cache exclusively. Delete `./cac
 | pytest | ≥ 8.0.0 | Test framework (dev) |
 | pytest-html | ≥ 4.0.0 | HTML test reports (dev) |
 | pytest-md | ≥ 0.2.0 | Markdown test reports (dev) |
-| networkx | — | Network visualization (optional) |
-| matplotlib | — | Graph rendering (optional) |
-| PyPDF2 / pdfplumber | — | Texas SOS PDF parsing (optional) |
+| networkx | -- | Network visualization (optional) |
+| matplotlib | -- | Graph rendering (optional) |
+| PyPDF2 / pdfplumber | -- | Texas SOS PDF parsing (optional) |
 
 Install: `pip install -e ".[dev]"`
 
@@ -401,3 +401,46 @@ Robert J. Green
 [www.rjgreenresearch.org](https://www.rjgreenresearch.org) · [robert@rjgreenresearch.org](mailto:robert@rjgreenresearch.org)
 ORCID: [0009-0002-9097-1021](https://orcid.org/0009-0002-9097-1021) · SSRN: [https://ssrn.com/author=10825096](https://ssrn.com/author=10825096)
 PhD Economics (Econometrics)
+
+
+---
+
+## Performance & Scaling
+
+### Three-Step Production Workflow
+
+For large-scale runs (500+ CIKs), SECMap uses a three-step workflow that separates network I/O from computation:
+
+| Step | Tool | Throughput |
+|---|---|---|
+| **1. Cache warm** | `cache_warmer.py` | ~50-80 filings/sec (async HTTP, 8 concurrent) |
+| **2. Analyze** | `run_research.py --workers 4` | ~20-30 CIKs/hr (parallel, from cache) |
+| **3. Report** | `report_generator.py` | ~100 reports/min |
+
+### Async HTTP (`sec_fetch_async.py`)
+
+- `aiohttp` with `asyncio.Semaphore(8)` for concurrent requests
+- SEC fair-access compliant: ~10 requests/second, 120ms delay per slot
+- Shares disk cache with synchronous `sec_fetch.py`
+- Two-phase cache warming: submissions JSON first, then filing documents in batches of 200
+
+### Multiprocessing (`--workers N`)
+
+- `ProcessPoolExecutor` with configurable worker count
+- Each worker processes independent CIKs from disk cache
+- `as_completed` for real-time progress with CIKs/hour and ETA
+- Default: 1 (backward compatible). Recommended: 3-4 after cache warming
+
+### XBRL Pre-filter (`--xbrl-prefilter`)
+
+- Loads XBRL SUB index, filters target CIK list, discards index
+- Eliminates wasted processing for CIKs without XBRL filings
+- Requires `--xbrl-dir`
+
+### Memory Management
+
+- Shared logger (not per-CIK) prevents logger accumulation
+- Explicit `del` of large objects after CSV write
+- Compact result summaries (not full edge lists) in results array
+- `gc.collect()` every 10 CIKs
+- Filing content freed after edge extraction

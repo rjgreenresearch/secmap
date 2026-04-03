@@ -105,7 +105,7 @@ def _http_get(url: str, use_cache: bool = True) -> Optional[requests.Response]:
             # Build a fake response-like object isn't clean;
             # instead we return None here and let callers use
             # _http_get_text() for cached text access.
-            pass  # fall through — cache is handled at higher level
+            pass  # fall through -- cache is handled at higher level
 
     time.sleep(REQUEST_DELAY)
 

@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Column definitions (order matters — this is the CSV schema)
+# Column definitions (order matters -- this is the CSV schema)
 # ---------------------------------------------------------------------------
 
 COLUMNS = [
