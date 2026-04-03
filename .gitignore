@@ -125,7 +125,7 @@ logs/
 # (Patent docs are in docs/ as .md which ARE committed —
 #  this catches any Word/PDF working drafts at root level)
 # DO NOT Uncomment these lines UNTIL the patent is filed:
-# docs/SCEMap - Patent Claims.md
-# docs/SCEMap - Patent-Ready Description.md
-# docs/SCEMap - Patentability Analysis.md
-# docs/SCEMap - Utility Patent Application Draft.md
+docs/SCEMap - Patent Claims.md
+docs/SCEMap - Patent-Ready Description.md
+docs/SCEMap - Patentability Analysis.md
+docs/SCEMap - Utility Patent Application Draft.md
